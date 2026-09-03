@@ -20,7 +20,7 @@ jobs:
       - name: Reject private material and unsafe placeholders
         run: |
           set -eu
-          if git grep -n -I -E -- 'BEGIN (RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]+'; then
+          if git grep -n -I -E -- 'BEGIN (RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY|AKIA[0-9A-Z]{16}|github_pat_[A-Za-z0-9_]{20,}|gh[pousr]_[A-Za-z0-9]{20,}'; then
             echo 'Potential secret or private key detected.' >&2
             exit 1
           fi
