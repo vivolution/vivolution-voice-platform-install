@@ -22,7 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Validate bootstrap syntax and release constants
-        run: tests/test-release-bootstrap.sh
+        run: sh tests/test-release-bootstrap.sh
       - name: ShellCheck
         run: shellcheck install.sh tests/test-release-bootstrap.sh
       - name: Validate release metadata consistency
