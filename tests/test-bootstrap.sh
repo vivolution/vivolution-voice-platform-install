@@ -32,6 +32,7 @@ if grep -E 'curl[[:space:]]|wget[[:space:]]|eval[[:space:]]|sh[[:space:]]+-c' "$
 fi
 
 # The documented one-liner must download the complete bootstrap before executing it.
+# shellcheck disable=SC2016  # The README must contain the literal shell variable $tmp.
 expected_output_fragment='--output "$tmp"'
 grep -F -- "$expected_output_fragment" "$README" >/dev/null
 if grep -F '| sudo sh' "$README" >/dev/null; then
