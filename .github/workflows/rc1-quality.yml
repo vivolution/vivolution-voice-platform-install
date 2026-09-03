@@ -1,0 +1,95 @@
+name: v0.1.0-rc1 public candidate quality
+
+on:
+  push:
+    branches:
+      - release/v0.1.0-rc1
+  pull_request:
+    branches:
+      - release/v0.1.0-rc1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Validate bootstrap syntax and release constants
+        run: tests/test-release-bootstrap.sh
+      - name: ShellCheck
+        run: shellcheck install.sh tests/test-release-bootstrap.sh
+      - name: Reconstruct deterministic archive
+        run: |
+          set -euo pipefail
+          cat release-input/artifact-parts/part-*.b64 | base64 --decode > release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz
+          test "$(stat -c %s release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz)" = '111001'
+      - name: Verify published input hashes and manifest
+        run: |
+          set -euo pipefail
+          cd release-input
+          sha256sum --check --strict SHA256SUMS
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import re
+
+          manifest = json.loads(pathlib.Path('vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json').read_text())
+          summary = json.loads(pathlib.Path('build-summary.json').read_text())
+          assert manifest['release'] == '0.1.0-rc1'
+          assert manifest['source_commit'] == 'a0c2f9465fe50ec01b72d14c5be936a10218ac92'
+          assert manifest['artifact']['os'] == 'debian-13'
+          assert manifest['artifact']['architecture'] == 'amd64'
+          assert manifest['artifact']['entrypoint'] == 'installer/install.sh'
+          assert manifest['artifact']['sha256'] == '56adf021bc3d3badde2de7db78d27c3e1c3aa7c33f21bcbad11136cff0cc28ed'
+          assert manifest['artifact']['bytes'] == 111001
+          assert manifest['sbom']['sha256'] == '0b1c1edb6edc40ae9c31e4164a521fa070821a43a31ba42909f5461ddfba0755'
+          assert summary['artifact_sha256'] == manifest['artifact']['sha256']
+          assert summary['sbom_sha256'] == manifest['sbom']['sha256']
+          assert re.fullmatch(r'[0-9a-f]{40}', manifest['source_commit'])
+          PY
+      - name: Verify archive safety and packaged identity
+        run: |
+          set -euo pipefail
+          artifact=release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz
+          listing=$(mktemp)
+          metadata=$(mktemp)
+          root=$(mktemp -d)
+          trap 'rm -f "$listing" "$metadata"; rm -rf "$root"' EXIT
+          tar -tzf "$artifact" > "$listing"
+          awk '
+            index($0,"vivolution-voice-platform-0.1.0-rc1/") != 1 { exit 1 }
+            /(^|\/)\.\.($|\/)/ { exit 1 }
+            seen[$0]++ { exit 1 }
+            END { if (NR == 0 || NR > 4096) exit 1 }
+          ' "$listing"
+          LC_ALL=C tar -tvzf "$artifact" > "$metadata"
+          awk 'substr($0,1,1)!="-" && substr($0,1,1)!="d" { exit 1 } END { if (NR==0) exit 1 }' "$metadata"
+          tar -xzf "$artifact" -C "$root" --no-same-owner --no-same-permissions
+          test -x "$root/vivolution-voice-platform-0.1.0-rc1/installer/install.sh"
+          test -z "$(find "$root" -type l -print -quit)"
+          python3 - "$root/vivolution-voice-platform-0.1.0-rc1/RELEASE-MANIFEST.json" <<'PY'
+          import json, pathlib, sys
+          value=json.loads(pathlib.Path(sys.argv[1]).read_text())
+          assert value == {
+              'architecture': 'amd64',
+              'entrypoint': 'installer/install.sh',
+              'os': 'debian-13',
+              'release': '0.1.0-rc1',
+              'role': 'controller',
+              'source_commit': 'a0c2f9465fe50ec01b72d14c5be936a10218ac92',
+          }
+          PY
+      - name: Reject credentials and private keys
+        run: |
+          set -euo pipefail
+          if git grep -n -I -E -- 'BEGIN (RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY|AKIA[0-9A-Z]{16}|(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]+' -- ':!*.md'; then
+            echo 'Potential credential or private key detected.' >&2
+            exit 1
+          fi
