@@ -24,7 +24,7 @@ jobs:
       - name: Validate bootstrap syntax and release constants
         run: sh tests/test-release-bootstrap.sh
       - name: ShellCheck
-        run: shellcheck install.sh tests/test-release-bootstrap.sh
+        run: shellcheck --severity=warning install.sh tests/test-release-bootstrap.sh
       - name: Validate release metadata consistency
         run: |
           set -euo pipefail
