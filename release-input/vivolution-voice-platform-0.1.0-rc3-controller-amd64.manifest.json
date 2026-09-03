@@ -1,0 +1,22 @@
+{
+  "artifact": {
+    "architecture": "amd64",
+    "archive_root": "vivolution-voice-platform-0.1.0-rc3",
+    "bytes": 169279,
+    "entrypoint": "installer/install.sh",
+    "name": "vivolution-voice-platform-0.1.0-rc3-controller-amd64.tar.gz",
+    "os": "debian-13",
+    "sha256": "e91184e3974336e0b606829c61d93f9d9e45f04671c5187251b1d0b660a322b2",
+    "url": "https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc3/vivolution-voice-platform-0.1.0-rc3-controller-amd64.tar.gz"
+  },
+  "product": "Vivolution Voice Platform",
+  "published_at": "2026-09-03T15:25:24Z",
+  "release": "0.1.0-rc3",
+  "sbom": {
+    "name": "vivolution-voice-platform-0.1.0-rc3-controller-amd64.spdx.json",
+    "sha256": "234d10d176376be22ad5ace0ad21b25fcc06f394294c65739cb3e3fd5d40c199",
+    "url": "https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc3/vivolution-voice-platform-0.1.0-rc3-controller-amd64.spdx.json"
+  },
+  "schema_version": 1,
+  "source_commit": "ecff3fe017ed30611ffbc7e45a3f24c5aa1de6b9"
+}
