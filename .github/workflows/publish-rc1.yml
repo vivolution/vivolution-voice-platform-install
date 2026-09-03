@@ -94,14 +94,24 @@ jobs:
           python3 - "$release_root/RELEASE-MANIFEST.json" <<'PY'
           import json, pathlib, sys
           value=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))
-          assert value == {
+          expected = {
               'architecture': 'amd64',
               'entrypoint': 'installer/install.sh',
               'os': 'debian-13',
+              'product': 'Vivolution Voice Platform',
               'release': '0.1.0-rc1',
               'role': 'controller',
+              'schema_version': 1,
               'source_commit': 'a0c2f9465fe50ec01b72d14c5be936a10218ac92',
           }
+          for key, expected_value in expected.items():
+              assert value.get(key) == expected_value, key
+          assert value.get('company') == 'Vivolution Technologies LLC'
+          files = value.get('files')
+          assert isinstance(files, list) and files
+          paths = {item['path'] for item in files}
+          for required in ('VERSION', 'controller/manage.py', 'installer/install.sh', 'installer/turnkey.py'):
+              assert required in paths, required
           PY
       - name: Refuse an existing release tag
         run: |
