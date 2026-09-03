@@ -32,7 +32,8 @@ if grep -E 'curl[[:space:]]|wget[[:space:]]|eval[[:space:]]|sh[[:space:]]+-c' "$
 fi
 
 # The documented one-liner must download the complete bootstrap before executing it.
-grep -F -- '--output "$tmp"' "$README" >/dev/null
+expected_output_fragment='--output "$tmp"'
+grep -F -- "$expected_output_fragment" "$README" >/dev/null
 if grep -F '| sudo sh' "$README" >/dev/null; then
     echo 'README contains a pipeline that can hide curl failure or execute partial input.' >&2
     exit 1
