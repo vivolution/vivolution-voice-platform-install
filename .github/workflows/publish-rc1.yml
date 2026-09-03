@@ -1,0 +1,77 @@
+name: Publish v0.1.0-rc1 Controller candidate
+
+on:
+  push:
+    branches:
+      - release/v0.1.0-rc1
+    paths:
+      - PUBLISH_APPROVED
+      - install.sh
+      - RELEASE_NOTES.md
+      - release-input/**
+      - .github/workflows/publish-rc1.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-v0.1.0-rc1
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: ${{ hashFiles('PUBLISH_APPROVED') != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - name: Reconstruct and validate exact release inputs
+        run: |
+          set -euo pipefail
+          test "$(cat PUBLISH_APPROVED)" = 'v0.1.0-rc1 a0c2f9465fe50ec01b72d14c5be936a10218ac92'
+          tests/test-release-bootstrap.sh
+          cat release-input/artifact-parts/part-*.b64 | base64 --decode > release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz
+          cd release-input
+          sha256sum --check --strict SHA256SUMS
+          test "$(stat -c %s vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz)" = '111001'
+      - name: Refuse an existing immutable tag
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin refs/tags/v0.1.0-rc1 >/dev/null 2>&1; then
+            echo 'Tag v0.1.0-rc1 already exists and will not be rewritten.' >&2
+            exit 1
+          fi
+      - name: Publish immutable prerelease and assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v0.1.0-rc1 \
+            release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz \
+            release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json \
+            release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.spdx.json \
+            release-input/SHA256SUMS \
+            release-input/build-summary.json \
+            --target "$GITHUB_SHA" \
+            --title 'v0.1.0-rc1 — standalone Controller Plane test candidate' \
+            --notes-file RELEASE_NOTES.md \
+            --prerelease
+      - name: Verify anonymous release assets and bootstrap
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --location \
+              --proto '=https' --proto-redir '=https' --tlsv1.2 \
+              --output /tmp/manifest.json \
+              https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc1/vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json; then
+              break
+            fi
+            sleep 2
+          done
+          python3 -m json.tool /tmp/manifest.json >/dev/null
+          docker run --rm \
+            --volume "$PWD:/release:ro" \
+            debian:13-slim \
+            sh -c 'apt-get update >/dev/null && apt-get install -y --no-install-recommends ca-certificates curl tar python3 >/dev/null && /release/install.sh --verify-only'
