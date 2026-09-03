@@ -32,7 +32,7 @@ if grep -E 'curl[[:space:]]|wget[[:space:]]|eval[[:space:]]|sh[[:space:]]+-c' "$
 fi
 
 # The documented one-liner must download the complete bootstrap before executing it.
-grep -F -- "--output \"\$tmp\"" "$README" >/dev/null
+grep -F -- '--output "$tmp"' "$README" >/dev/null
 if grep -F '| sudo sh' "$README" >/dev/null; then
     echo 'README contains a pipeline that can hide curl failure or execute partial input.' >&2
     exit 1
@@ -55,12 +55,33 @@ for channel in ('stable', 'preview'):
     }
 
 schema = json.loads((root / 'schemas' / 'release-manifest.schema.json').read_text())
+assert schema['additionalProperties'] is False
 assert 'sbom' in schema['required']
+assert schema['properties']['artifact']['additionalProperties'] is False
+assert schema['properties']['sbom']['additionalProperties'] is False
+assert schema['properties']['artifact']['properties']['os']['const'] == 'debian-13'
+assert schema['properties']['artifact']['properties']['architecture']['const'] == 'amd64'
+
+release_pattern = re.compile(schema['properties']['release']['pattern'])
+assert release_pattern.fullmatch('0.1.0')
+assert release_pattern.fullmatch('0.1.0-rc1')
+assert not release_pattern.fullmatch('0.1.0-rc0')
+assert not release_pattern.fullmatch('v0.1.0')
+
+safe_url = 'https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc1/vivolution-voice-platform-0.1.0-rc1-amd64.tar.gz'
 for section in ('artifact', 'sbom'):
     url_rule = schema['properties'][section]['properties']['url']
     assert url_rule.get('format') == 'uri'
     pattern = re.compile(url_rule['pattern'])
-    assert pattern.fullmatch('https://github.com/vivolution/release/file.tar.gz')
+    assert pattern.fullmatch(safe_url)
     assert not pattern.fullmatch('https://')
     assert not pattern.fullmatch('http://github.com/file')
+    assert not pattern.fullmatch('https://user:pass@github.com/file')
+    assert not pattern.fullmatch('https://example.com/release.tar.gz')
+    assert not pattern.fullmatch('https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc0/file')
+
+name_pattern = re.compile(schema['properties']['artifact']['properties']['name']['pattern'])
+assert name_pattern.fullmatch('vivolution-voice-platform-0.1.0-rc1-amd64.tar.gz')
+assert not name_pattern.fullmatch('../release.tar.gz')
+assert not name_pattern.fullmatch('path/release.tar.gz')
 PY
