@@ -7,21 +7,24 @@ The complete product source remains private. This repository contains only the
 small bootstrap, public release metadata, checksums/signatures, SBOMs, release
 notes, and approved versioned release assets.
 
-## Permanent command
+## Permanent one-line command
 
 ```sh
-curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/main/install.sh | sudo sh
+(tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/main/install.sh && sudo sh "$tmp")
 ```
 
+Downloading the complete bootstrap before execution ensures a failed or partial
+transfer cannot be mistaken for a successful installation.
+
 **No release is promoted yet.** The command currently exits safely without
-downloading or changing the host. It becomes active only after an exact release
-candidate has passed automated validation and its artifact, digest, manifest,
-and SBOM have been published.
+downloading a product artifact or changing the host. It becomes active only
+after an exact release candidate has passed automated validation and its
+artifact, digest, manifest, and SBOM have been published.
 
 Check the channel without installing:
 
 ```sh
-curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/main/install.sh | sudo sh -s -- --status
+(tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/main/install.sh && sudo sh "$tmp" --status)
 ```
 
 ## Release policy
