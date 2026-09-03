@@ -1,0 +1,162 @@
+name: Publish v0.1.0-rc1 Controller candidate
+
+on:
+  push:
+    branches:
+      - release/v0.1.0-rc1
+    paths:
+      - PUBLISH_APPROVED
+      - install.sh
+      - RELEASE_NOTES.md
+      - release-input/**
+      - tests/test-release-bootstrap.sh
+      - .github/workflows/publish-rc1.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-v0.1.0-rc1
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: ${{ hashFiles('PUBLISH_APPROVED') != '' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SOURCE_ARTIFACT_URL: 'https://sdmntprnortheu.oaiusercontent.com/files/00000000-97a4-81f4-b673-ecc254d7eb80/raw?se=2026-09-03T07%3A35%3A52Z&sp=r&sv=2026-02-06&sr=b&scid=318108d6-05c6-5d31-b686-5931067fb957&skoid=e32cbaad-a1eb-4299-9f16-1b364ab43781&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-03T05%3A01%3A49Z&ske=2026-09-04T05%3A01%3A49Z&sks=b&skv=2026-02-06&sig=6YV5WkqbKpVxsiri5ACzlTJNnY3TQLql/3elXfBR0SE%3D'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - name: Confirm publication authorization and bootstrap identity
+        run: |
+          set -euo pipefail
+          test "$(cat PUBLISH_APPROVED)" = 'v0.1.0-rc1 a0c2f9465fe50ec01b72d14c5be936a10218ac92'
+          sh tests/test-release-bootstrap.sh
+      - name: Download exact private-build artifact bundle
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --silent --location \
+            --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            --connect-timeout 10 --max-time 300 --retry 3 --retry-all-errors \
+            --output /tmp/controller-build.zip "$SOURCE_ARTIFACT_URL"
+          test "$(stat -c %s /tmp/controller-build.zip)" = '172865'
+          printf '%s  %s\n' \
+            '259381d01410e064834f427fe16224a1bf1b0d352601b591ae1ff8f38ef1f160' \
+            /tmp/controller-build.zip | sha256sum --check --strict
+          mkdir /tmp/controller-build
+          unzip -q /tmp/controller-build.zip -d /tmp/controller-build
+      - name: Verify transferred files and release metadata
+        run: |
+          set -euo pipefail
+          expected=$(printf '%s\n' \
+            SHA256SUMS \
+            build-summary.json \
+            vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json \
+            vivolution-voice-platform-0.1.0-rc1-controller-amd64.spdx.json \
+            vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz)
+          actual=$(find /tmp/controller-build -mindepth 1 -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort)
+          test "$actual" = "$expected"
+          test -z "$(find /tmp/controller-build -mindepth 1 ! -type f -print -quit)"
+          cmp release-input/SHA256SUMS /tmp/controller-build/SHA256SUMS
+          cmp release-input/build-summary.json /tmp/controller-build/build-summary.json
+          cmp release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json \
+              /tmp/controller-build/vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json
+          cd /tmp/controller-build
+          sha256sum --check --strict SHA256SUMS
+          test "$(stat -c %s vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz)" = '111001'
+          python3 -m json.tool vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json >/dev/null
+          python3 -m json.tool vivolution-voice-platform-0.1.0-rc1-controller-amd64.spdx.json >/dev/null
+      - name: Verify archive layout and packaged identity again
+        run: |
+          set -euo pipefail
+          artifact=/tmp/controller-build/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz
+          listing=$(mktemp)
+          metadata=$(mktemp)
+          root=$(mktemp -d)
+          trap 'rm -f "$listing" "$metadata"; rm -rf "$root"' EXIT
+          tar -tzf "$artifact" > "$listing"
+          awk '
+            index($0,"vivolution-voice-platform-0.1.0-rc1/") != 1 { exit 1 }
+            /(^|\/)\.\.($|\/)/ { exit 1 }
+            /(^|\/)\.($|\/)/ { exit 1 }
+            seen[$0]++ { exit 1 }
+            END { if (NR == 0 || NR > 4096) exit 1 }
+          ' "$listing"
+          LC_ALL=C tar -tvzf "$artifact" > "$metadata"
+          awk 'substr($0,1,1)!="-" && substr($0,1,1)!="d" { exit 1 } END { if (NR==0) exit 1 }' "$metadata"
+          tar -xzf "$artifact" -C "$root" --no-same-owner --no-same-permissions
+          release_root="$root/vivolution-voice-platform-0.1.0-rc1"
+          test -x "$release_root/installer/install.sh"
+          test -x "$release_root/installer/turnkey.py"
+          test -z "$(find "$release_root" -type l -print -quit)"
+          python3 - "$release_root/RELEASE-MANIFEST.json" <<'PY'
+          import json, pathlib, sys
+          value=json.loads(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))
+          assert value == {
+              'architecture': 'amd64',
+              'entrypoint': 'installer/install.sh',
+              'os': 'debian-13',
+              'release': '0.1.0-rc1',
+              'role': 'controller',
+              'source_commit': 'a0c2f9465fe50ec01b72d14c5be936a10218ac92',
+          }
+          PY
+      - name: Refuse an existing release tag
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin refs/tags/v0.1.0-rc1 >/dev/null 2>&1; then
+            echo 'Tag v0.1.0-rc1 already exists and will not be rewritten.' >&2
+            exit 1
+          fi
+      - name: Publish prerelease and exact assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v0.1.0-rc1 \
+            /tmp/controller-build/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz \
+            /tmp/controller-build/vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json \
+            /tmp/controller-build/vivolution-voice-platform-0.1.0-rc1-controller-amd64.spdx.json \
+            /tmp/controller-build/SHA256SUMS \
+            /tmp/controller-build/build-summary.json \
+            --target "$GITHUB_SHA" \
+            --title 'v0.1.0-rc1 — standalone Controller Plane test candidate' \
+            --notes-file RELEASE_NOTES.md \
+            --prerelease
+      - name: Verify anonymous release and version-pinned bootstrap
+        run: |
+          set -euo pipefail
+          base=https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc1
+          mkdir /tmp/anonymous
+          for name in \
+            vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz \
+            vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json \
+            vivolution-voice-platform-0.1.0-rc1-controller-amd64.spdx.json \
+            SHA256SUMS \
+            build-summary.json
+          do
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent --show-error --location \
+                --proto '=https' --proto-redir '=https' --tlsv1.2 \
+                --output "/tmp/anonymous/$name" "$base/$name"; then
+                break
+              fi
+              test "$attempt" -lt 30
+              sleep 2
+            done
+          done
+          cd /tmp/anonymous
+          sha256sum --check --strict SHA256SUMS
+          cmp vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json \
+              "$GITHUB_WORKSPACE/release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json"
+          curl --fail --show-error --silent --location \
+            --proto '=https' --proto-redir '=https' --tlsv1.2 \
+            --output /tmp/anonymous/install.sh \
+            https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc1/install.sh
+          docker run --rm \
+            --volume /tmp/anonymous/install.sh:/install.sh:ro \
+            debian:13-slim \
+            sh -c 'apt-get update >/dev/null && apt-get install -y --no-install-recommends ca-certificates curl findutils gawk python3 tar >/dev/null && sh /install.sh --verify-only'

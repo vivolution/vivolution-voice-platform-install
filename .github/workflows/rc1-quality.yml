@@ -1,0 +1,73 @@
+name: v0.1.0-rc1 public candidate quality
+
+on:
+  push:
+    branches:
+      - release/v0.1.0-rc1
+  pull_request:
+    branches:
+      - release/v0.1.0-rc1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rc1-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Validate bootstrap syntax and release constants
+        run: sh tests/test-release-bootstrap.sh
+      - name: ShellCheck
+        run: shellcheck install.sh tests/test-release-bootstrap.sh
+      - name: Validate release metadata consistency
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import re
+
+          root = pathlib.Path('release-input')
+          manifest_path = root / 'vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json'
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          summary = json.loads((root / 'build-summary.json').read_text(encoding='utf-8'))
+          checksums = {}
+          for line in (root / 'SHA256SUMS').read_text(encoding='utf-8').splitlines():
+              digest, name = line.split(None, 1)
+              checksums[name.strip()] = digest
+
+          assert manifest['schema_version'] == 1
+          assert manifest['product'] == 'Vivolution Voice Platform'
+          assert manifest['release'] == '0.1.0-rc1'
+          assert manifest['source_commit'] == 'a0c2f9465fe50ec01b72d14c5be936a10218ac92'
+          assert re.fullmatch(r'[0-9a-f]{40}', manifest['source_commit'])
+          artifact = manifest['artifact']
+          assert artifact['os'] == 'debian-13'
+          assert artifact['architecture'] == 'amd64'
+          assert artifact['entrypoint'] == 'installer/install.sh'
+          assert artifact['archive_root'] == 'vivolution-voice-platform-0.1.0-rc1'
+          assert artifact['sha256'] == '56adf021bc3d3badde2de7db78d27c3e1c3aa7c33f21bcbad11136cff0cc28ed'
+          assert artifact['bytes'] == 111001
+          assert manifest['sbom']['sha256'] == '0b1c1edb6edc40ae9c31e4164a521fa070821a43a31ba42909f5461ddfba0755'
+          assert summary['artifact_sha256'] == artifact['sha256']
+          assert summary['artifact_bytes'] == artifact['bytes']
+          assert summary['sbom_sha256'] == manifest['sbom']['sha256']
+          actual_manifest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+          assert checksums[manifest_path.name] == actual_manifest
+          assert checksums[artifact['name']] == artifact['sha256']
+          assert checksums[manifest['sbom']['name']] == manifest['sbom']['sha256']
+          PY
+      - name: Reject credentials and private keys
+        run: |
+          set -euo pipefail
+          if git grep -n -I -E -- 'BEGIN (RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY|AKIA[0-9A-Z]{16}|(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]+' -- ':!*.md'; then
+            echo 'Potential credential or private key detected.' >&2
+            exit 1
+          fi

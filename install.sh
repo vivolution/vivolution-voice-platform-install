@@ -2,222 +2,187 @@
 set -eu
 
 PRODUCT='Vivolution Voice Platform'
-COMPANY='Vivolution Technologies LLC'
 RELEASE_VERSION='0.1.0-rc1'
 SOURCE_COMMIT='a0c2f9465fe50ec01b72d14c5be936a10218ac92'
 ARCHIVE_NAME='vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz'
 ARCHIVE_ROOT='vivolution-voice-platform-0.1.0-rc1'
-ARCHIVE_URL='https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc1/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz'
 ARCHIVE_SHA256='56adf021bc3d3badde2de7db78d27c3e1c3aa7c33f21bcbad11136cff0cc28ed'
 ARCHIVE_BYTES='111001'
-MAX_ARCHIVE_ENTRIES='2048'
-MAX_EXTRACTED_BYTES='67108864'
+ARCHIVE_URL="https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v${RELEASE_VERSION}/${ARCHIVE_NAME}"
+MAX_ARCHIVE_BYTES='268435456'
+MAX_ARCHIVE_ENTRIES='4096'
 MODE='install'
-LOCAL_ARCHIVE=''
-BOOTSTRAP_TMP=''
+TMP_ROOT=''
 
 fail() {
-    printf '%s installer: %s\n' "$PRODUCT" "$*" >&2
+    printf '%s bootstrap: %s\n' "$PRODUCT" "$*" >&2
     exit 1
 }
 
 cleanup() {
-    if [ -n "$BOOTSTRAP_TMP" ] && [ -d "$BOOTSTRAP_TMP" ]; then
-        rm -rf -- "$BOOTSTRAP_TMP"
+    if [ -n "$TMP_ROOT" ] && [ -d "$TMP_ROOT" ]; then
+        rm -rf -- "$TMP_ROOT"
     fi
 }
 
-require_command() {
-    command -v "$1" >/dev/null 2>&1 || fail "required command not found: $1"
-}
-
-usage() {
-    cat <<EOF
-$PRODUCT $RELEASE_VERSION Controller installer
-
-Usage:
-  install.sh [installer arguments]
-  install.sh --verify-only
-  install.sh --verify-archive FILE
-  install.sh --status
-
-Qualified role: one new standalone Controller Plane on Debian 13 AMD64.
-Edge Appliance deployment is not included in this release candidate.
-EOF
-}
+trap cleanup 0
+trap 'exit 130' 1 2 15
 
 case "${1:-}" in
     --status)
-        [ "$#" -eq 1 ] || fail '--status does not accept additional arguments'
-        printf '%s\n' "$PRODUCT"
-        printf 'Company: %s\n' "$COMPANY"
-        printf 'Release: %s\n' "$RELEASE_VERSION"
-        printf 'Source commit: %s\n' "$SOURCE_COMMIT"
-        printf 'Role: standalone Controller Plane\n'
-        printf 'Platform: Debian 13 AMD64\n'
-        printf 'Artifact SHA-256: %s\n' "$ARCHIVE_SHA256"
+        printf '%s\n' \
+            "$PRODUCT" \
+            "Release candidate: v${RELEASE_VERSION}" \
+            'Enabled role: Create a new standalone Controller Plane' \
+            'Qualified host: Debian GNU/Linux 13 AMD64/x86_64' \
+            "Source commit: ${SOURCE_COMMIT}" \
+            "Artifact SHA-256: ${ARCHIVE_SHA256}"
         exit 0
         ;;
     --verify-only)
-        [ "$#" -eq 1 ] || fail '--verify-only does not accept additional arguments'
         MODE='verify-only'
         shift
-        ;;
-    --verify-archive)
-        [ "$#" -eq 2 ] || fail '--verify-archive requires exactly one file path'
-        MODE='verify-archive'
-        LOCAL_ARCHIVE=$2
-        shift 2
-        ;;
-    --help|-h)
-        usage
-        exit 0
+        [ "$#" -eq 0 ] || fail '--verify-only does not accept installer arguments'
         ;;
 esac
 
-for command_name in cp mkdir python3 sha256sum wc tr mktemp rm id; do
-    require_command "$command_name"
+[ "$(id -u)" -eq 0 ] || fail 'run through sudo as documented'
+
+for required_command in awk curl find id mkdir mktemp python3 readlink rm sha256sum tar tr uname wc; do
+    command -v "$required_command" >/dev/null 2>&1 || fail "required command not found: $required_command"
 done
-if [ "$MODE" != 'verify-archive' ]; then
-    require_command curl
+
+[ "$(uname -m)" = 'x86_64' ] || fail 'this release candidate requires AMD64/x86_64'
+
+os_release='/etc/os-release'
+[ -e "$os_release" ] || fail '/etc/os-release is missing'
+if [ -L "$os_release" ]; then
+    target=$(readlink "$os_release") || fail 'could not read /etc/os-release symlink'
+    case "$target" in
+        ../usr/lib/os-release|/usr/lib/os-release) ;;
+        *) fail '/etc/os-release has an unsupported symlink target' ;;
+    esac
 fi
-if [ "$MODE" = 'install' ] && [ "$(id -u)" -ne 0 ]; then
-    fail 'run the installer as root (the published command uses sudo)'
-fi
+os_id=$(awk -F= '$1 == "ID" { value=$2; gsub(/^"|"$/, "", value); print value }' "$os_release")
+os_version=$(awk -F= '$1 == "VERSION_ID" { value=$2; gsub(/^"|"$/, "", value); print value }' "$os_release")
+[ "$os_id" = 'debian' ] && [ "$os_version" = '13' ] || fail 'this release candidate requires Debian GNU/Linux 13'
+
+python3 -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 13) else 1)' ||
+    fail 'this release candidate requires Debian 13 system Python 3.13'
 
 umask 077
-BOOTSTRAP_TMP=$(mktemp -d "${TMPDIR:-/tmp}/vivolution-bootstrap.XXXXXXXXXX") ||
+TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/vivolution-bootstrap.XXXXXXXXXX") ||
     fail 'could not create a private temporary directory'
-trap cleanup EXIT HUP INT TERM
+archive="$TMP_ROOT/$ARCHIVE_NAME"
+listing="$TMP_ROOT/archive.list"
+metadata="$TMP_ROOT/archive.metadata"
+extract="$TMP_ROOT/source"
 
-archive_path="$BOOTSTRAP_TMP/$ARCHIVE_NAME"
-extract_path="$BOOTSTRAP_TMP/extracted"
+printf '%s\n' \
+    "$PRODUCT v${RELEASE_VERSION}" \
+    'A product of Vivolution Technologies LLC' \
+    'Release scope: standalone Controller Plane release-candidate testing.' \
+    "Downloading exact artifact from source commit ${SOURCE_COMMIT}..."
 
-if [ "$MODE" = 'verify-archive' ]; then
-    if [ ! -f "$LOCAL_ARCHIVE" ] || [ -L "$LOCAL_ARCHIVE" ]; then
-        fail 'local archive is missing, not regular, or is a symbolic link'
-    fi
-    cp -- "$LOCAL_ARCHIVE" "$archive_path"
-else
-    printf 'Downloading %s %s Controller release candidate...\n' "$PRODUCT" "$RELEASE_VERSION"
-    curl \
-        --fail \
-        --show-error \
-        --silent \
-        --location \
-        --proto '=https' \
-        --proto-redir '=https' \
-        --tlsv1.2 \
-        --retry 3 \
-        --retry-all-errors \
-        --connect-timeout 10 \
-        --max-time 300 \
-        --output "$archive_path" \
-        "$ARCHIVE_URL" || fail 'release archive download failed'
+curl \
+    --fail \
+    --show-error \
+    --silent \
+    --location \
+    --proto '=https' \
+    --proto-redir '=https' \
+    --tlsv1.2 \
+    --retry 3 \
+    --retry-all-errors \
+    --connect-timeout 10 \
+    --max-time 600 \
+    --output "$archive" \
+    "$ARCHIVE_URL" || fail 'release artifact download failed'
+
+bytes=$(wc -c < "$archive" | tr -d '[:space:]')
+case "$bytes" in
+    ''|*[!0-9]*) fail 'downloaded artifact size is invalid' ;;
+esac
+[ "$bytes" -gt 0 ] && [ "$bytes" -le "$MAX_ARCHIVE_BYTES" ] ||
+    fail "downloaded artifact size is outside the approved limit: ${bytes} bytes"
+[ "$bytes" -eq "$ARCHIVE_BYTES" ] ||
+    fail "downloaded artifact size does not match the release record: ${bytes} bytes"
+
+printf '%s  %s\n' "$ARCHIVE_SHA256" "$archive" |
+    sha256sum --check --strict >/dev/null 2>&1 ||
+    fail 'release artifact SHA-256 verification failed'
+
+if ! tar -tzf "$archive" > "$listing"; then
+    fail 'verified artifact is not a readable gzip-compressed tar archive'
+fi
+if ! awk -v prefix="${ARCHIVE_ROOT}/" -v maximum="$MAX_ARCHIVE_ENTRIES" '
+    BEGIN { found=0; count=0 }
+    index($0, prefix) != 1 { exit 1 }
+    {
+        relative=substr($0, length(prefix) + 1)
+        if (relative ~ /(^|\/)\.\.($|\/)/) exit 1
+        if (relative ~ /(^|\/)\.($|\/)/) exit 1
+        if (seen[$0]++) exit 1
+        count++
+        if (count > maximum) exit 1
+        found=1
+    }
+    END { if (!found) exit 1 }
+' "$listing"; then
+    fail 'verified artifact has an unsafe or unexpected path layout'
+fi
+if ! LC_ALL=C tar -tvzf "$archive" > "$metadata"; then
+    fail 'verified artifact metadata could not be read'
+fi
+if ! awk '
+    substr($0, 1, 1) != "-" && substr($0, 1, 1) != "d" { exit 1 }
+    END { if (NR == 0) exit 1 }
+' "$metadata"; then
+    fail 'verified artifact contains a link or special file'
 fi
 
-archive_bytes=$(wc -c < "$archive_path" | tr -d '[:space:]')
-case "$archive_bytes" in
-    ''|*[!0-9]*) fail 'downloaded archive has an invalid size' ;;
-esac
-[ "$archive_bytes" = "$ARCHIVE_BYTES" ] ||
-    fail "release archive size mismatch: expected $ARCHIVE_BYTES bytes, received $archive_bytes"
-printf '%s  %s\n' "$ARCHIVE_SHA256" "$archive_path" |
-    sha256sum --check --strict >/dev/null 2>&1 ||
-    fail 'release archive SHA-256 verification failed'
+mkdir "$extract"
+tar -xzf "$archive" \
+    --directory "$extract" \
+    --no-same-owner \
+    --no-same-permissions || fail 'verified artifact extraction failed'
 
-mkdir -p "$extract_path"
-python3 - "$archive_path" "$extract_path" "$ARCHIVE_ROOT" "$SOURCE_COMMIT" \
-    "$RELEASE_VERSION" "$MAX_ARCHIVE_ENTRIES" "$MAX_EXTRACTED_BYTES" <<'PY'
-from __future__ import annotations
+source_root="$extract/$ARCHIVE_ROOT"
+installer="$source_root/installer/install.sh"
+[ -d "$source_root" ] && [ ! -L "$source_root" ] ||
+    fail 'verified artifact did not create the expected release directory'
+[ -z "$(find "$source_root" -type l -print -quit)" ] ||
+    fail 'verified artifact contains a symbolic link after extraction'
+[ -f "$installer" ] && [ ! -L "$installer" ] && [ -x "$installer" ] ||
+    fail 'verified artifact is missing its executable installer entry point'
 
-import hashlib
+for required_path in \
+    RELEASE-MANIFEST.json \
+    VERSION \
+    config/platform-support.json \
+    controller/manage.py \
+    controller/requirements.txt \
+    installer/turnkey.py \
+    packaging/caddy/Caddyfile.template \
+    packaging/systemd/vivolution-controller.service
+do
+    candidate="$source_root/$required_path"
+    [ -f "$candidate" ] && [ ! -L "$candidate" ] ||
+        fail "verified artifact is incomplete: $required_path"
+done
+
+python3 - "$source_root/RELEASE-MANIFEST.json" "$source_root/VERSION" \
+    "$RELEASE_VERSION" "$SOURCE_COMMIT" <<'PY'
 import json
-import os
-from pathlib import Path, PurePosixPath
-import stat
+import pathlib
 import sys
-import tarfile
 
-archive = Path(sys.argv[1])
-extract = Path(sys.argv[2])
-archive_root = sys.argv[3]
+manifest_path = pathlib.Path(sys.argv[1])
+version_path = pathlib.Path(sys.argv[2])
+release = sys.argv[3]
 source_commit = sys.argv[4]
-release = sys.argv[5]
-maximum_entries = int(sys.argv[6])
-maximum_bytes = int(sys.argv[7])
-
-
-def stop(message: str) -> None:
-    raise SystemExit(f"archive validation failed: {message}")
-
-
-def digest(path: Path) -> str:
-    value = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            value.update(chunk)
-    return value.hexdigest()
-
-
-with tarfile.open(archive, mode="r:gz") as bundle:
-    members = bundle.getmembers()
-    if not members or len(members) > maximum_entries:
-        stop("entry count is outside the approved range")
-    seen: set[str] = set()
-    extracted_bytes = 0
-    for member in members:
-        name = member.name
-        if name in seen:
-            stop(f"duplicate path: {name}")
-        seen.add(name)
-        if any(ord(character) < 32 or ord(character) == 127 for character in name):
-            stop("an archive path contains a control character")
-        path = PurePosixPath(name)
-        if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
-            stop(f"unsafe path: {name}")
-        if name != archive_root and not name.startswith(archive_root + "/"):
-            stop(f"path is outside the approved archive root: {name}")
-        if not (member.isfile() or member.isdir()):
-            stop(f"links and special files are forbidden: {name}")
-        if member.isfile():
-            if member.size < 0:
-                stop(f"negative file size: {name}")
-            extracted_bytes += member.size
-            if extracted_bytes > maximum_bytes:
-                stop("uncompressed archive size exceeds the approved limit")
-    required = {
-        f"{archive_root}/RELEASE-MANIFEST.json",
-        f"{archive_root}/VERSION",
-        f"{archive_root}/controller/manage.py",
-        f"{archive_root}/controller/requirements.txt",
-        f"{archive_root}/installer/install.sh",
-        f"{archive_root}/installer/turnkey.py",
-        f"{archive_root}/packaging/systemd/vivolution-controller.service",
-        f"{archive_root}/packaging/caddy/Caddyfile.template",
-    }
-    missing = sorted(required - seen)
-    if missing:
-        stop("required paths are missing: " + ", ".join(missing))
-    bundle.extractall(extract, filter="data")
-
-root = extract / archive_root
-if not root.is_dir() or root.is_symlink():
-    stop("the expected release root was not extracted safely")
-for candidate in root.rglob("*"):
-    metadata = candidate.lstat()
-    if stat.S_ISLNK(metadata.st_mode) or not (stat.S_ISREG(metadata.st_mode) or stat.S_ISDIR(metadata.st_mode)):
-        stop(f"unsafe extracted object: {candidate.relative_to(root)}")
-
-manifest_path = root / "RELEASE-MANIFEST.json"
-try:
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-except (OSError, UnicodeError, ValueError) as error:
-    stop(f"internal manifest is unreadable: {error}")
-expected_identity = {
-    "schema_version": 1,
-    "product": "Vivolution Voice Platform",
-    "company": "Vivolution Technologies LLC",
+manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+expected = {
     "release": release,
     "source_commit": source_commit,
     "role": "controller",
@@ -225,56 +190,25 @@ expected_identity = {
     "architecture": "amd64",
     "entrypoint": "installer/install.sh",
 }
-for key, value in expected_identity.items():
+for key, value in expected.items():
     if manifest.get(key) != value:
-        stop(f"internal manifest identity mismatch for {key}")
-records = manifest.get("files")
-if not isinstance(records, list):
-    stop("internal manifest file list is invalid")
-approved: dict[str, dict[str, object]] = {}
-for record in records:
-    if not isinstance(record, dict):
-        stop("internal manifest contains a malformed file record")
-    relative = record.get("path")
-    if not isinstance(relative, str) or relative in approved:
-        stop("internal manifest contains an unsafe or duplicate file path")
-    path = PurePosixPath(relative)
-    if path.is_absolute() or any(part in {"", ".", ".."} for part in path.parts):
-        stop(f"internal manifest contains an unsafe path: {relative}")
-    approved[relative] = record
-actual: dict[str, Path] = {}
-for candidate in root.rglob("*"):
-    if candidate.is_file() and candidate != manifest_path:
-        actual[candidate.relative_to(root).as_posix()] = candidate
-if set(actual) != set(approved):
-    stop("extracted file set does not match the signed release record")
-for relative, path in actual.items():
-    record = approved[relative]
-    if record.get("sha256") != digest(path):
-        stop(f"file digest mismatch: {relative}")
-    if record.get("bytes") != path.stat().st_size:
-        stop(f"file size mismatch: {relative}")
-    mode = record.get("mode")
-    if mode not in {"0644", "0755"} or stat.S_IMODE(path.stat().st_mode) != int(mode, 8):
-        stop(f"file mode mismatch: {relative}")
-entrypoint = root / "installer/install.sh"
-if not entrypoint.is_file() or not os.access(entrypoint, os.X_OK):
-    stop("installer entry point is missing or not executable")
+        raise SystemExit(f"release manifest mismatch for {key}")
+if version_path.read_text(encoding="utf-8").strip() != release:
+    raise SystemExit("release VERSION mismatch")
 PY
 
-printf 'Verified %s bytes and SHA-256 %s.\n' "$ARCHIVE_BYTES" "$ARCHIVE_SHA256"
-printf 'Verified source commit %s and complete internal file manifest.\n' "$SOURCE_COMMIT"
+printf 'Verified v%s artifact SHA-256 %s.\n' "$RELEASE_VERSION" "$ARCHIVE_SHA256"
 
-if [ "$MODE" = 'verify-only' ] || [ "$MODE" = 'verify-archive' ]; then
-    printf '%s %s Controller archive verification passed; nothing was installed.\n' \
-        "$PRODUCT" "$RELEASE_VERSION"
+if [ "$MODE" = 'verify-only' ]; then
+    printf '%s\n' 'Verification passed. Nothing was installed or changed on the host.'
     exit 0
 fi
 
-installer_path="$extract_path/$ARCHIVE_ROOT/installer/install.sh"
-printf 'Starting the verified %s Controller installer...\n' "$PRODUCT"
-if [ -c /dev/tty ] && ( : </dev/tty ) 2>/dev/null; then
-    "$installer_path" "$@" </dev/tty
+printf '%s\n' \
+    'Starting the verified interactive installer.' \
+    'Select: Create a new Controller Plane.'
+if [ -c /dev/tty ] && (: </dev/tty) 2>/dev/null; then
+    "$installer" "$@" </dev/tty
 else
-    fail 'no controlling terminal is available; run from an interactive SSH session or use --verify-only'
+    fail 'no controlling terminal is available; run from an interactive SSH session'
 fi
