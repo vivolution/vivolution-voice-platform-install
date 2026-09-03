@@ -2,6 +2,7 @@
 set -eu
 
 PRODUCT='Vivolution Voice Platform'
+COMPANY='Vivolution Technologies LLC'
 RELEASE_VERSION='0.1.0-rc1'
 SOURCE_COMMIT='a0c2f9465fe50ec01b72d14c5be936a10218ac92'
 ARCHIVE_NAME='vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz'
@@ -32,6 +33,7 @@ case "${1:-}" in
     --status)
         printf '%s\n' \
             "$PRODUCT" \
+            "A product of $COMPANY" \
             "Release candidate: v${RELEASE_VERSION}" \
             'Enabled role: Create a new standalone Controller Plane' \
             'Qualified host: Debian GNU/Linux 13 AMD64/x86_64' \
@@ -42,20 +44,30 @@ case "${1:-}" in
     --verify-only)
         MODE='verify-only'
         shift
-        [ "$#" -eq 0 ] || fail '--verify-only does not accept installer arguments'
+        if [ "$#" -ne 0 ]; then
+            fail '--verify-only does not accept installer arguments'
+        fi
         ;;
 esac
 
-[ "$(id -u)" -eq 0 ] || fail 'run through sudo as documented'
+if [ "$(id -u)" -ne 0 ]; then
+    fail 'run through sudo as documented'
+fi
 
 for required_command in awk curl find id mkdir mktemp python3 readlink rm sha256sum tar tr uname wc; do
-    command -v "$required_command" >/dev/null 2>&1 || fail "required command not found: $required_command"
+    if ! command -v "$required_command" >/dev/null 2>&1; then
+        fail "required command not found: $required_command"
+    fi
 done
 
-[ "$(uname -m)" = 'x86_64' ] || fail 'this release candidate requires AMD64/x86_64'
+if [ "$(uname -m)" != 'x86_64' ]; then
+    fail 'this release candidate requires AMD64/x86_64'
+fi
 
 os_release='/etc/os-release'
-[ -e "$os_release" ] || fail '/etc/os-release is missing'
+if [ ! -e "$os_release" ]; then
+    fail '/etc/os-release is missing'
+fi
 if [ -L "$os_release" ]; then
     target=$(readlink "$os_release") || fail 'could not read /etc/os-release symlink'
     case "$target" in
@@ -65,10 +77,13 @@ if [ -L "$os_release" ]; then
 fi
 os_id=$(awk -F= '$1 == "ID" { value=$2; gsub(/^"|"$/, "", value); print value }' "$os_release")
 os_version=$(awk -F= '$1 == "VERSION_ID" { value=$2; gsub(/^"|"$/, "", value); print value }' "$os_release")
-[ "$os_id" = 'debian' ] && [ "$os_version" = '13' ] || fail 'this release candidate requires Debian GNU/Linux 13'
+if [ "$os_id" != 'debian' ] || [ "$os_version" != '13' ]; then
+    fail 'this release candidate requires Debian GNU/Linux 13'
+fi
 
-python3 -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 13) else 1)' ||
+if ! python3 -c 'import sys; raise SystemExit(0 if sys.version_info[:2] == (3, 13) else 1)'; then
     fail 'this release candidate requires Debian 13 system Python 3.13'
+fi
 
 umask 077
 TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/vivolution-bootstrap.XXXXXXXXXX") ||
@@ -80,7 +95,7 @@ extract="$TMP_ROOT/source"
 
 printf '%s\n' \
     "$PRODUCT v${RELEASE_VERSION}" \
-    'A product of Vivolution Technologies LLC' \
+    "A product of $COMPANY" \
     'Release scope: standalone Controller Plane release-candidate testing.' \
     "Downloading exact artifact from source commit ${SOURCE_COMMIT}..."
 
@@ -103,14 +118,18 @@ bytes=$(wc -c < "$archive" | tr -d '[:space:]')
 case "$bytes" in
     ''|*[!0-9]*) fail 'downloaded artifact size is invalid' ;;
 esac
-[ "$bytes" -gt 0 ] && [ "$bytes" -le "$MAX_ARCHIVE_BYTES" ] ||
+if [ "$bytes" -le 0 ] || [ "$bytes" -gt "$MAX_ARCHIVE_BYTES" ]; then
     fail "downloaded artifact size is outside the approved limit: ${bytes} bytes"
-[ "$bytes" -eq "$ARCHIVE_BYTES" ] ||
+fi
+if [ "$bytes" -ne "$ARCHIVE_BYTES" ]; then
     fail "downloaded artifact size does not match the release record: ${bytes} bytes"
+fi
 
-printf '%s  %s\n' "$ARCHIVE_SHA256" "$archive" |
-    sha256sum --check --strict >/dev/null 2>&1 ||
+if ! printf '%s  %s\n' "$ARCHIVE_SHA256" "$archive" |
+    sha256sum --check --strict >/dev/null 2>&1
+then
     fail 'release artifact SHA-256 verification failed'
+fi
 
 if ! tar -tzf "$archive" > "$listing"; then
     fail 'verified artifact is not a readable gzip-compressed tar archive'
@@ -142,19 +161,25 @@ if ! awk '
 fi
 
 mkdir "$extract"
-tar -xzf "$archive" \
+if ! tar -xzf "$archive" \
     --directory "$extract" \
     --no-same-owner \
-    --no-same-permissions || fail 'verified artifact extraction failed'
+    --no-same-permissions
+then
+    fail 'verified artifact extraction failed'
+fi
 
 source_root="$extract/$ARCHIVE_ROOT"
 installer="$source_root/installer/install.sh"
-[ -d "$source_root" ] && [ ! -L "$source_root" ] ||
+if [ ! -d "$source_root" ] || [ -L "$source_root" ]; then
     fail 'verified artifact did not create the expected release directory'
-[ -z "$(find "$source_root" -type l -print -quit)" ] ||
+fi
+if [ -n "$(find "$source_root" -type l -print -quit)" ]; then
     fail 'verified artifact contains a symbolic link after extraction'
-[ -f "$installer" ] && [ ! -L "$installer" ] && [ -x "$installer" ] ||
+fi
+if [ ! -f "$installer" ] || [ -L "$installer" ] || [ ! -x "$installer" ]; then
     fail 'verified artifact is missing its executable installer entry point'
+fi
 
 for required_path in \
     RELEASE-MANIFEST.json \
@@ -167,22 +192,28 @@ for required_path in \
     packaging/systemd/vivolution-controller.service
 do
     candidate="$source_root/$required_path"
-    [ -f "$candidate" ] && [ ! -L "$candidate" ] ||
+    if [ ! -f "$candidate" ] || [ -L "$candidate" ]; then
         fail "verified artifact is incomplete: $required_path"
+    fi
 done
 
-python3 - "$source_root/RELEASE-MANIFEST.json" "$source_root/VERSION" \
-    "$RELEASE_VERSION" "$SOURCE_COMMIT" <<'PY'
+python3 - "$source_root" "$RELEASE_VERSION" "$SOURCE_COMMIT" <<'PY'
+import hashlib
 import json
 import pathlib
+import stat
 import sys
 
-manifest_path = pathlib.Path(sys.argv[1])
-version_path = pathlib.Path(sys.argv[2])
-release = sys.argv[3]
-source_commit = sys.argv[4]
+root = pathlib.Path(sys.argv[1])
+release = sys.argv[2]
+source_commit = sys.argv[3]
+manifest_path = root / "RELEASE-MANIFEST.json"
+version_path = root / "VERSION"
 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
 expected = {
+    "schema_version": 1,
+    "product": "Vivolution Voice Platform",
+    "company": "Vivolution Technologies LLC",
     "release": release,
     "source_commit": source_commit,
     "role": "controller",
@@ -195,6 +226,39 @@ for key, value in expected.items():
         raise SystemExit(f"release manifest mismatch for {key}")
 if version_path.read_text(encoding="utf-8").strip() != release:
     raise SystemExit("release VERSION mismatch")
+records = manifest.get("files")
+if not isinstance(records, list) or not records:
+    raise SystemExit("release file manifest is missing")
+listed = set()
+for record in records:
+    relative = record.get("path")
+    if not isinstance(relative, str):
+        raise SystemExit("release file path is invalid")
+    pure = pathlib.PurePosixPath(relative)
+    if pure.is_absolute() or any(part in {"", ".", ".."} for part in pure.parts):
+        raise SystemExit(f"unsafe release file path: {relative}")
+    if relative in listed:
+        raise SystemExit(f"duplicate release file path: {relative}")
+    listed.add(relative)
+    path = root / pure
+    metadata = path.lstat()
+    if not stat.S_ISREG(metadata.st_mode) or path.is_symlink():
+        raise SystemExit(f"release file is missing or unsafe: {relative}")
+    if metadata.st_size != record.get("bytes"):
+        raise SystemExit(f"release file size mismatch: {relative}")
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    if digest != record.get("sha256"):
+        raise SystemExit(f"release file digest mismatch: {relative}")
+    expected_mode = int(str(record.get("mode")), 8)
+    if stat.S_IMODE(metadata.st_mode) != expected_mode:
+        raise SystemExit(f"release file mode mismatch: {relative}")
+actual = {
+    path.relative_to(root).as_posix()
+    for path in root.rglob("*")
+    if path.is_file() and path.name != "RELEASE-MANIFEST.json"
+}
+if actual != listed:
+    raise SystemExit("release file allowlist mismatch")
 PY
 
 printf 'Verified v%s artifact SHA-256 %s.\n' "$RELEASE_VERSION" "$ARCHIVE_SHA256"
