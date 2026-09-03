@@ -20,8 +20,8 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Shell syntax and behavior
         run: |
-          tests/test-bootstrap.sh
-          tests/test-main-channel.sh
+          sh tests/test-bootstrap.sh
+          sh tests/test-main-channel.sh
       - name: ShellCheck
         run: shellcheck install.sh tests/test-bootstrap.sh tests/test-main-channel.sh
       - name: Validate JSON metadata and schema
