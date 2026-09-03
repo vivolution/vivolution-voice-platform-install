@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "channel": "stable",
+  "available": false,
+  "reason": "No approved stable release has been promoted."
+}
