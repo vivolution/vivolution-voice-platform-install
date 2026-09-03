@@ -34,7 +34,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$(cat PUBLISH_APPROVED)" = 'v0.1.0-rc1 a0c2f9465fe50ec01b72d14c5be936a10218ac92'
-          tests/test-release-bootstrap.sh
+          sh tests/test-release-bootstrap.sh
       - name: Download exact private-build artifact bundle
         run: |
           set -euo pipefail
