@@ -1,6 +1,12 @@
 {
   "schema_version": 1,
   "channel": "preview",
-  "available": false,
-  "reason": "No approved preview release has been promoted."
+  "available": true,
+  "release": "0.1.0-rc1",
+  "role": "controller",
+  "platform": "debian-13-amd64",
+  "source_commit": "a0c2f9465fe50ec01b72d14c5be936a10218ac92",
+  "bootstrap_url": "https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc1/install.sh",
+  "manifest_url": "https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc1/vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json",
+  "artifact_sha256": "56adf021bc3d3badde2de7db78d27c3e1c3aa7c33f21bcbad11136cff0cc28ed"
 }
