@@ -3,6 +3,7 @@ set -eu
 
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
 BOOTSTRAP="$ROOT/install.sh"
+README="$ROOT/README.md"
 
 sh -n "$BOOTSTRAP"
 
@@ -30,10 +31,19 @@ if grep -E 'curl[[:space:]]|wget[[:space:]]|eval[[:space:]]|sh[[:space:]]+-c' "$
     exit 1
 fi
 
+# The documented one-liner must download the complete bootstrap before executing it.
+grep -F -- '--output "$tmp"' "$README" >/dev/null
+if grep -F '| sudo sh' "$README" >/dev/null; then
+    echo 'README contains a pipeline that can hide curl failure or execute partial input.' >&2
+    exit 1
+fi
+
 python3 - "$ROOT" <<'PY'
 import json
 import pathlib
+import re
 import sys
+
 root = pathlib.Path(sys.argv[1])
 for channel in ('stable', 'preview'):
     value = json.loads((root / 'channels' / f'{channel}.json').read_text())
@@ -43,5 +53,14 @@ for channel in ('stable', 'preview'):
         'available': False,
         'reason': f"No approved {channel} release has been promoted.",
     }
-json.loads((root / 'schemas' / 'release-manifest.schema.json').read_text())
+
+schema = json.loads((root / 'schemas' / 'release-manifest.schema.json').read_text())
+assert 'sbom' in schema['required']
+for section in ('artifact', 'sbom'):
+    url_rule = schema['properties'][section]['properties']['url']
+    assert url_rule.get('format') == 'uri'
+    pattern = re.compile(url_rule['pattern'])
+    assert pattern.fullmatch('https://github.com/vivolution/release/file.tar.gz')
+    assert not pattern.fullmatch('https://')
+    assert not pattern.fullmatch('http://github.com/file')
 PY
