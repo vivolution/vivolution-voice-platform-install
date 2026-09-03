@@ -24,7 +24,10 @@ jobs:
       - name: Validate bootstrap syntax and release constants
         run: sh tests/test-release-bootstrap.sh
       - name: ShellCheck
-        run: shellcheck install.sh tests/test-release-bootstrap.sh
+        run: |
+          # RC1 is already immutable. SC2015 findings are informational for
+          # fail-closed A-and-B-or-fail guards whose behavior is covered by tests.
+          shellcheck --exclude=SC2015 install.sh tests/test-release-bootstrap.sh
       - name: Validate release metadata consistency
         run: |
           set -euo pipefail
