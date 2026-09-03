@@ -10,7 +10,7 @@ on:
       - RELEASE_NOTES.md
       - release-input/**
       - tests/test-release-bootstrap.sh
-      - .github/workflows/publish-rc3.yml
+      - .github/workflows/publish-rc4.yml
 
 permissions:
   contents: write
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      SOURCE_ARTIFACT_URL: 'undefined'
+      SOURCE_ARTIFACT_URL: 'https://sdmntprwestus3.oaiusercontent.com/files/00000000-2c70-81fd-8686-764d38be0ef8/raw?se=2026-09-03T17%3A08%3A06Z&sp=r&sv=2026-02-06&sr=b&scid=01a06810-3394-7988-bed3-0ecbd01a8cea&skoid=5e713cdb-766b-475e-a3ca-8adb6cf99aa0&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-02T22%3A21%3A08Z&ske=2026-09-03T22%3A21%3A08Z&sks=b&skv=2026-02-06&sig=dgBWPhW9Hko1N9RG4onkjKyz64rhnNasygDTunEJvVg%3D'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:

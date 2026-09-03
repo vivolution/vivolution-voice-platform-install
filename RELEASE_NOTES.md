@@ -11,6 +11,7 @@ RC4 supersedes RC3 for new testing and resolves the Operations and operational-r
 - trusted proxy handling prevents a remote client from spoofing its displayed address;
 - `sudo vivolution account recover EXACT_USERNAME` provides root-only break-glass recovery, invalidates sessions, resets MFA/recovery codes, and forces complete security setup;
 - `sudo vivolution logs installer` follows the consolidated, redacted installer log in real time;
+- the installer prints the live log path at startup so progress can be followed from a second SSH session;
 - `sudo vivolution status`, `diagnostics`, and `logs controller` provide supported host operations.
 
 Validated at source commit `6a1cfa4d58e7af14fdf170dbe6c12e70a9e8f46e`:
