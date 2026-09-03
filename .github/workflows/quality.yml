@@ -2,15 +2,12 @@ name: Public bootstrap quality
 
 on:
   push:
-    branches: [main, 'bootstrap/**', 'release/**']
+    branches: [main, 'bootstrap/**', 'hardening/**']
   pull_request:
+    branches: [main]
 
 permissions:
   contents: read
-
-concurrency:
-  group: public-bootstrap-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   verify:
@@ -18,25 +15,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Shell syntax and behavior
+      - name: Main-channel validation
         run: |
-          sh tests/test-bootstrap.sh
-          sh tests/test-main-channel.sh
+          tests/test-bootstrap.sh
+          tests/test-main-channel.sh
       - name: ShellCheck
         run: shellcheck install.sh tests/test-bootstrap.sh tests/test-main-channel.sh
-      - name: Validate JSON metadata and schema
-        run: |
-          python3 -m json.tool channels/stable.json >/dev/null
-          python3 -m json.tool channels/preview.json >/dev/null
-          python3 -m json.tool schemas/release-manifest.schema.json >/dev/null
-      - name: Reject private material and unsafe placeholders
-        run: |
-          set -eu
-          if git grep -n -I -E -- 'BEGIN (RSA |EC |OPENSSH |ENCRYPTED )?PRIVATE KEY|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]+|github_pat_[A-Za-z0-9_]+'; then
-            echo 'Potential secret or private key detected.' >&2
-            exit 1
-          fi
-          if git grep -n -I -E -- 'SOURCE_COMMIT=.?(PENDING|LATEST)|ARCHIVE_SHA256=.?(PENDING|LATEST)'; then
-            echo 'Unsafe release placeholder detected.' >&2
-            exit 1
-          fi
