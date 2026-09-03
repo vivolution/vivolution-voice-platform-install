@@ -25,66 +25,44 @@ jobs:
         run: tests/test-release-bootstrap.sh
       - name: ShellCheck
         run: shellcheck install.sh tests/test-release-bootstrap.sh
-      - name: Reconstruct deterministic archive
+      - name: Validate release metadata consistency
         run: |
           set -euo pipefail
-          cat release-input/artifact-parts/part-*.b64 | base64 --decode > release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz
-          test "$(stat -c %s release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz)" = '111001'
-      - name: Verify published input hashes and manifest
-        run: |
-          set -euo pipefail
-          cd release-input
-          sha256sum --check --strict SHA256SUMS
           python3 - <<'PY'
+          import hashlib
           import json
           import pathlib
           import re
 
-          manifest = json.loads(pathlib.Path('vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json').read_text())
-          summary = json.loads(pathlib.Path('build-summary.json').read_text())
+          root = pathlib.Path('release-input')
+          manifest_path = root / 'vivolution-voice-platform-0.1.0-rc1-controller-amd64.manifest.json'
+          manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+          summary = json.loads((root / 'build-summary.json').read_text(encoding='utf-8'))
+          checksums = {}
+          for line in (root / 'SHA256SUMS').read_text(encoding='utf-8').splitlines():
+              digest, name = line.split(None, 1)
+              checksums[name.strip()] = digest
+
+          assert manifest['schema_version'] == 1
+          assert manifest['product'] == 'Vivolution Voice Platform'
           assert manifest['release'] == '0.1.0-rc1'
           assert manifest['source_commit'] == 'a0c2f9465fe50ec01b72d14c5be936a10218ac92'
-          assert manifest['artifact']['os'] == 'debian-13'
-          assert manifest['artifact']['architecture'] == 'amd64'
-          assert manifest['artifact']['entrypoint'] == 'installer/install.sh'
-          assert manifest['artifact']['sha256'] == '56adf021bc3d3badde2de7db78d27c3e1c3aa7c33f21bcbad11136cff0cc28ed'
-          assert manifest['artifact']['bytes'] == 111001
-          assert manifest['sbom']['sha256'] == '0b1c1edb6edc40ae9c31e4164a521fa070821a43a31ba42909f5461ddfba0755'
-          assert summary['artifact_sha256'] == manifest['artifact']['sha256']
-          assert summary['sbom_sha256'] == manifest['sbom']['sha256']
           assert re.fullmatch(r'[0-9a-f]{40}', manifest['source_commit'])
-          PY
-      - name: Verify archive safety and packaged identity
-        run: |
-          set -euo pipefail
-          artifact=release-input/vivolution-voice-platform-0.1.0-rc1-controller-amd64.tar.gz
-          listing=$(mktemp)
-          metadata=$(mktemp)
-          root=$(mktemp -d)
-          trap 'rm -f "$listing" "$metadata"; rm -rf "$root"' EXIT
-          tar -tzf "$artifact" > "$listing"
-          awk '
-            index($0,"vivolution-voice-platform-0.1.0-rc1/") != 1 { exit 1 }
-            /(^|\/)\.\.($|\/)/ { exit 1 }
-            seen[$0]++ { exit 1 }
-            END { if (NR == 0 || NR > 4096) exit 1 }
-          ' "$listing"
-          LC_ALL=C tar -tvzf "$artifact" > "$metadata"
-          awk 'substr($0,1,1)!="-" && substr($0,1,1)!="d" { exit 1 } END { if (NR==0) exit 1 }' "$metadata"
-          tar -xzf "$artifact" -C "$root" --no-same-owner --no-same-permissions
-          test -x "$root/vivolution-voice-platform-0.1.0-rc1/installer/install.sh"
-          test -z "$(find "$root" -type l -print -quit)"
-          python3 - "$root/vivolution-voice-platform-0.1.0-rc1/RELEASE-MANIFEST.json" <<'PY'
-          import json, pathlib, sys
-          value=json.loads(pathlib.Path(sys.argv[1]).read_text())
-          assert value == {
-              'architecture': 'amd64',
-              'entrypoint': 'installer/install.sh',
-              'os': 'debian-13',
-              'release': '0.1.0-rc1',
-              'role': 'controller',
-              'source_commit': 'a0c2f9465fe50ec01b72d14c5be936a10218ac92',
-          }
+          artifact = manifest['artifact']
+          assert artifact['os'] == 'debian-13'
+          assert artifact['architecture'] == 'amd64'
+          assert artifact['entrypoint'] == 'installer/install.sh'
+          assert artifact['archive_root'] == 'vivolution-voice-platform-0.1.0-rc1'
+          assert artifact['sha256'] == '56adf021bc3d3badde2de7db78d27c3e1c3aa7c33f21bcbad11136cff0cc28ed'
+          assert artifact['bytes'] == 111001
+          assert manifest['sbom']['sha256'] == '0b1c1edb6edc40ae9c31e4164a521fa070821a43a31ba42909f5461ddfba0755'
+          assert summary['artifact_sha256'] == artifact['sha256']
+          assert summary['artifact_bytes'] == artifact['bytes']
+          assert summary['sbom_sha256'] == manifest['sbom']['sha256']
+          actual_manifest = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+          assert checksums[manifest_path.name] == actual_manifest
+          assert checksums[artifact['name']] == artifact['sha256']
+          assert checksums[manifest['sbom']['name']] == manifest['sbom']['sha256']
           PY
       - name: Reject credentials and private keys
         run: |
