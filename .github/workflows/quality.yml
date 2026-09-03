@@ -20,10 +20,14 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Shell syntax and behavior
         run: |
-          sh tests/test-bootstrap.sh
-          sh tests/test-main-channel.sh
+          if [ -f tests/test-release-bootstrap.sh ]; then
+            sh tests/test-release-bootstrap.sh
+          else
+            sh tests/test-bootstrap.sh
+            sh tests/test-main-channel.sh
+          fi
       - name: ShellCheck
-        run: shellcheck install.sh tests/test-bootstrap.sh tests/test-main-channel.sh
+        run: shellcheck install.sh tests/test-*.sh
       - name: Validate JSON metadata and schema
         run: |
           python3 -m json.tool channels/stable.json >/dev/null
