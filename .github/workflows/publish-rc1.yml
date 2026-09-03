@@ -21,11 +21,10 @@ concurrency:
 
 jobs:
   publish:
-    if: ${{ hashFiles('PUBLISH_APPROVED') != '' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      SOURCE_ARTIFACT_URL: 'https://sdmntprnortheu.oaiusercontent.com/files/00000000-97a4-81f4-b673-ecc254d7eb80/raw?se=2026-09-03T07%3A35%3A52Z&sp=r&sv=2026-02-06&sr=b&scid=318108d6-05c6-5d31-b686-5931067fb957&skoid=e32cbaad-a1eb-4299-9f16-1b364ab43781&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-03T05%3A01%3A49Z&ske=2026-09-04T05%3A01%3A49Z&sks=b&skv=2026-02-06&sig=6YV5WkqbKpVxsiri5ACzlTJNnY3TQLql/3elXfBR0SE%3D'
+      SOURCE_ARTIFACT_URL: 'https://sdmntprdenmarkeast.oaiusercontent.com/files/00000000-7ec4-8210-ac71-a6eefe74e549/raw?se=2026-09-03T07%3A40%3A14Z&sp=r&sv=2026-02-06&sr=b&scid=10d1e17a-2a5f-5426-b9f9-faaaa93c5c2e&skoid=e32cbaad-a1eb-4299-9f16-1b364ab43781&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-03T07%3A03%3A04Z&ske=2026-09-04T07%3A03%3A04Z&sks=b&skv=2026-02-06&sig=WwPZKB%2BBsPHrMO6ZZs3%2BLqc1VYOrC66v9nsyxticvqk%3D'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
