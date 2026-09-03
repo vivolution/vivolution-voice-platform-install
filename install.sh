@@ -2,7 +2,6 @@
 set -eu
 
 PRODUCT='Vivolution Voice Platform'
-CHANNEL='stable'
 
 fail() {
     printf '%s installer: %s\n' "$PRODUCT" "$*" >&2
