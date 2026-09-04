@@ -2,15 +2,23 @@
 set -eu
 
 PRODUCT='Vivolution Voice Platform'
-RELEASE_VERSION='0.1.0-rc11'
-SOURCE_COMMIT='ad481774a054e99b1430cde24e6ed0facdf81c0b'
-ARCHIVE_NAME='vivolution-voice-platform-0.1.0-rc11-amd64.tar.gz'
-ARCHIVE_ROOT='vivolution-voice-platform-0.1.0-rc11'
-ARCHIVE_SHA256='dea6cc9d60c233fc3e6e3a6e1b6554936389c256f60f559c8370922ccf207396'
-ARCHIVE_BYTES='260274'
+RELEASE_VERSION='0.1.0-rc12'
+SOURCE_COMMIT='__RC12_SOURCE_COMMIT__'
+ARCHIVE_NAME='vivolution-voice-platform-0.1.0-rc12-amd64.tar.gz'
+ARCHIVE_ROOT='vivolution-voice-platform-0.1.0-rc12'
+ARCHIVE_SHA256='__RC12_ARCHIVE_SHA256__'
+ARCHIVE_BYTES='__RC12_ARCHIVE_BYTES__'
 ARCHIVE_URL="https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v${RELEASE_VERSION}/${ARCHIVE_NAME}"
+SIGNATURE_NAME="${ARCHIVE_NAME}.sig"
+SIGNATURE_SHA256='__RC12_SIGNATURE_SHA256__'
+SIGNATURE_BYTES='__RC12_SIGNATURE_BYTES__'
+SIGNATURE_URL="${ARCHIVE_URL}.sig"
+RELEASE_SIGNING_NAMESPACE='vivolution-voice-platform-release'
+RELEASE_SIGNER_IDENTITY='vivolution-pilot-release'
+RELEASE_SIGNING_PUBLIC_KEY='ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOXDQQsKYGszOebD6Ik4+MxhqOXP72R114hI98N+kCt3'
 MAX_ARCHIVE_BYTES='268435456'
 MAX_ARCHIVE_ENTRIES='4096'
+MAX_SIGNATURE_BYTES='16384'
 MODE='install'
 TMP_ROOT=''
 
@@ -28,15 +36,88 @@ cleanup() {
 trap cleanup 0
 trap 'exit 130' 1 2 15
 
+metadata_is_final() {
+    case "$SOURCE_COMMIT" in
+        ''|*[!0-9a-f]*) return 1 ;;
+    esac
+    [ "${#SOURCE_COMMIT}" -eq 40 ] || return 1
+
+    case "$ARCHIVE_SHA256" in
+        ''|*[!0-9a-f]*) return 1 ;;
+    esac
+    case "$SIGNATURE_SHA256" in
+        ''|*[!0-9a-f]*) return 1 ;;
+    esac
+    [ "${#ARCHIVE_SHA256}" -eq 64 ] || return 1
+    [ "${#SIGNATURE_SHA256}" -eq 64 ] || return 1
+
+    case "$ARCHIVE_BYTES" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    case "$SIGNATURE_BYTES" in
+        ''|*[!0-9]*) return 1 ;;
+    esac
+    [ "$ARCHIVE_BYTES" -gt 0 ] || return 1
+    [ "$ARCHIVE_BYTES" -le "$MAX_ARCHIVE_BYTES" ] || return 1
+    [ "$SIGNATURE_BYTES" -gt 0 ] || return 1
+    [ "$SIGNATURE_BYTES" -le "$MAX_SIGNATURE_BYTES" ] || return 1
+}
+
+validate_downloaded_file() {
+    checked_path=$1
+    checked_label=$2
+    expected_bytes=$3
+    maximum_bytes=$4
+    expected_sha256=$5
+
+    checked_bytes=$(wc -c < "$checked_path" | tr -d '[:space:]')
+    case "$checked_bytes" in
+        ''|*[!0-9]*) fail "downloaded ${checked_label} size is invalid" ;;
+    esac
+    [ "$checked_bytes" -gt 0 ] && [ "$checked_bytes" -le "$maximum_bytes" ] ||
+        fail "downloaded ${checked_label} size is outside the approved limit: ${checked_bytes} bytes"
+    [ "$checked_bytes" -eq "$expected_bytes" ] ||
+        fail "downloaded ${checked_label} size does not match the release record: ${checked_bytes} bytes"
+
+    printf '%s  %s\n' "$expected_sha256" "$checked_path" |
+        sha256sum -c - >/dev/null 2>&1 ||
+        fail "downloaded ${checked_label} SHA-256 verification failed"
+}
+
+verify_detached_signature() {
+    signed_path=$1
+    signature_path=$2
+    allowed_signers_path=$3
+
+    ssh-keygen -Y verify \
+        -f "$allowed_signers_path" \
+        -I "$RELEASE_SIGNER_IDENTITY" \
+        -n "$RELEASE_SIGNING_NAMESPACE" \
+        -s "$signature_path" \
+        < "$signed_path" >/dev/null 2>&1 ||
+        fail 'release artifact publisher signature verification failed'
+}
+
 case "${1:-}" in
     --status)
-        printf '%s\n' \
-            "$PRODUCT" \
-            "Release candidate: v${RELEASE_VERSION}" \
-            'Enabled roles: standalone Controller Plane and Edge Appliance' \
-            'Qualified host: Debian GNU/Linux 13 AMD64/x86_64' \
-            "Source commit: ${SOURCE_COMMIT}" \
-            "Artifact SHA-256: ${ARCHIVE_SHA256}"
+        if metadata_is_final; then
+            printf '%s\n' \
+                "$PRODUCT" \
+                "Release candidate: v${RELEASE_VERSION}" \
+                'Enabled roles: standalone Controller Plane and Edge Appliance' \
+                'Qualified host: Debian GNU/Linux 13 AMD64/x86_64' \
+                "Source commit: ${SOURCE_COMMIT}" \
+                "Artifact SHA-256: ${ARCHIVE_SHA256}" \
+                "Detached signature SHA-256: ${SIGNATURE_SHA256}" \
+                "Publisher identity: ${RELEASE_SIGNER_IDENTITY}" \
+                "Signature namespace: ${RELEASE_SIGNING_NAMESPACE}"
+        else
+            printf '%s\n' \
+                "$PRODUCT" \
+                "Release candidate: v${RELEASE_VERSION}" \
+                'Release metadata: incomplete; installation and verification are disabled.' \
+                'Nothing was downloaded or installed.'
+        fi
         exit 0
         ;;
     --verify-only)
@@ -46,9 +127,12 @@ case "${1:-}" in
         ;;
 esac
 
+metadata_is_final ||
+    fail 'RC12 release metadata is incomplete; nothing was downloaded or installed'
+
 [ "$(id -u)" -eq 0 ] || fail 'run through sudo as documented'
 
-for required_command in awk curl find id mkdir mktemp python3 readlink rm sha256sum tar tr uname wc; do
+for required_command in awk curl find id mkdir mktemp python3 readlink rm sha256sum ssh-keygen tar tr uname wc; do
     command -v "$required_command" >/dev/null 2>&1 || fail "required command not found: $required_command"
 done
 
@@ -74,6 +158,8 @@ umask 077
 TMP_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/vivolution-bootstrap.XXXXXXXXXX") ||
     fail 'could not create a private temporary directory'
 archive="$TMP_ROOT/$ARCHIVE_NAME"
+signature="$TMP_ROOT/$SIGNATURE_NAME"
+allowed_signers="$TMP_ROOT/release.allowed_signers"
 listing="$TMP_ROOT/archive.list"
 metadata="$TMP_ROOT/archive.metadata"
 extract="$TMP_ROOT/source"
@@ -99,18 +185,29 @@ curl \
     --output "$archive" \
     "$ARCHIVE_URL" || fail 'release artifact download failed'
 
-bytes=$(wc -c < "$archive" | tr -d '[:space:]')
-case "$bytes" in
-    ''|*[!0-9]*) fail 'downloaded artifact size is invalid' ;;
-esac
-[ "$bytes" -gt 0 ] && [ "$bytes" -le "$MAX_ARCHIVE_BYTES" ] ||
-    fail "downloaded artifact size is outside the approved limit: ${bytes} bytes"
-[ "$bytes" -eq "$ARCHIVE_BYTES" ] ||
-    fail "downloaded artifact size does not match the release record: ${bytes} bytes"
+curl \
+    --fail \
+    --show-error \
+    --silent \
+    --location \
+    --proto '=https' \
+    --proto-redir '=https' \
+    --tlsv1.2 \
+    --retry 3 \
+    --retry-all-errors \
+    --connect-timeout 10 \
+    --max-time 60 \
+    --output "$signature" \
+    "$SIGNATURE_URL" || fail 'release artifact publisher signature download failed'
 
-printf '%s  %s\n' "$ARCHIVE_SHA256" "$archive" |
-    sha256sum --check --strict >/dev/null 2>&1 ||
-    fail 'release artifact SHA-256 verification failed'
+validate_downloaded_file \
+    "$archive" 'artifact' "$ARCHIVE_BYTES" "$MAX_ARCHIVE_BYTES" "$ARCHIVE_SHA256"
+validate_downloaded_file \
+    "$signature" 'publisher signature' "$SIGNATURE_BYTES" "$MAX_SIGNATURE_BYTES" "$SIGNATURE_SHA256"
+
+printf '%s %s\n' "$RELEASE_SIGNER_IDENTITY" "$RELEASE_SIGNING_PUBLIC_KEY" > "$allowed_signers" ||
+    fail 'could not prepare the publisher trust policy'
+verify_detached_signature "$archive" "$signature" "$allowed_signers"
 
 if ! tar -tzf "$archive" > "$listing"; then
     fail 'verified artifact is not a readable gzip-compressed tar archive'
@@ -205,7 +302,8 @@ if version_path.read_text(encoding="utf-8").strip() != release:
     raise SystemExit("release VERSION mismatch")
 PY
 
-printf 'Verified v%s artifact SHA-256 %s.\n' "$RELEASE_VERSION" "$ARCHIVE_SHA256"
+printf 'Verified v%s artifact SHA-256 %s and detached publisher signature for %s.\n' \
+    "$RELEASE_VERSION" "$ARCHIVE_SHA256" "$RELEASE_SIGNER_IDENTITY"
 
 if [ "$MODE" = 'verify-only' ]; then
     printf '%s\n' 'Verification passed. Nothing was installed or changed on the host.'

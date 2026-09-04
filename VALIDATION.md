@@ -12,4 +12,7 @@ The public bootstrap foundation has passed repeated automated validation.
 6. ShellCheck found a test quoting warning; fixed and revalidated.
 7. Final branch and post-merge `main` workflows passed.
 
-No product release is promoted yet. The current bootstrap remains intentionally fail-closed until an exact release artifact, digest, manifest, and SBOM are published.
+No stable product release is promoted yet. The RC12 scaffold remains
+intentionally fail-closed until the exact source commit, release artifact,
+detached publisher signature, byte counts, digests, manifest, and SBOM are
+recorded and independently verified.

@@ -18,7 +18,7 @@ transfer cannot be mistaken for a successful installation.
 
 **No stable release is promoted yet.** The permanent command exits safely
 without downloading a product artifact or changing the host. An immutable
-unified internal-pilot candidate is available through the version-pinned RC10
+unified internal-pilot candidate is available through the version-pinned RC11
 command after its GitHub prerelease is published:
 
 ```sh
@@ -37,7 +37,9 @@ Check the channel without installing:
 - Version-pinned paths remain available for reproducibility.
 - Published tags and release assets are protected by GitHub release immutability and are never replaced.
 - Every immutable release receives a cryptographically verifiable GitHub release attestation.
-- The bootstrap verifies the exact artifact digest before execution.
+- The bootstrap verifies the exact artifact size and digest before execution.
+- RC12 and later bootstraps also require an OpenSSH detached publisher
+  signature bound to the documented Vivolution release namespace and identity.
 - A failed validation results in a new release candidate, never a rewritten tag.
 - The first three-host deployment will use `v0.1.0-rc1` or a later RC.
 - Final `v0.1.0` is published only after the Controller plus two-Edge proof passes.
@@ -47,6 +49,10 @@ Check the channel without installing:
 The current product line targets native services on **Debian GNU/Linux 13
 AMD64/x86-64**, with one standalone Controller Plane and two dedicated Edge
 Appliances. Controller and Edge roles must not share a host.
+
+RC12 detached-signature verification requires the Debian `openssh-client`
+package and an `ssh-keygen` version supporting `-Y verify` before the product
+archive can be authenticated.
 
 ## Security
 
