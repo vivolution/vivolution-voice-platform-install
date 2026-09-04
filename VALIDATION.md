@@ -12,7 +12,8 @@ The public bootstrap foundation has passed repeated automated validation.
 6. ShellCheck found a test quoting warning; fixed and revalidated.
 7. Final branch and post-merge `main` workflows passed.
 
-No stable product release is promoted yet. RC13 records the exact source
+No stable product release is promoted yet. The permanent `main/install.sh`
+bootstrap remains intentionally fail-closed. RC13 records the exact source
 commit, byte-for-byte reproducible unified artifact, detached publisher
 signature, byte counts, digests, manifest, and SBOM. All nine required source
 repository checks passed for that exact commit before publication approval.
@@ -23,3 +24,12 @@ independent VM restarts, and bounded Controller-outage last-known-good proof
 without an installed-file patch. The dated
 [RC13 qualification summary](docs/rc13-qualification.md) separates that
 foundation evidence from the production gates that remain open.
+
+## Distribution correction
+
+The first RC13 preview pull request accidentally merged the active,
+version-pinned bootstrap into `main`. An immediate follow-up revert restored the
+permanent command to fail-closed and retained only RC13 preview metadata and
+qualification documentation. No tagged file or immutable release asset was
+changed. Regression tests require `main/install.sh` to contain no downloader or
+dynamic execution path.

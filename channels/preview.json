@@ -11,5 +11,5 @@
   "installer_url": "https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc13/install.sh",
   "manifest_url": "https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc13/vivolution-voice-platform-0.1.0-rc13-amd64.manifest.json",
   "artifact_sha256": "fa574052befbdc6bb656636ca4493f8285551e47f1256b834c36bcde337fc283",
-  "published_at": "2026-09-04T19:30:37Z"
+  "published_at": "2026-09-04T19:36:03Z"
 }

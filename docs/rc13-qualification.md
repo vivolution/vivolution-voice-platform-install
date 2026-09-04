@@ -24,6 +24,12 @@ immutable; release and archive attestation verification passed; and fresh
 anonymous downloads of the tagged bootstrap and all assets matched the
 approved local files.
 
+The immutable release metadata labels build-preparation timestamps as
+`published_at`; neither is the GitHub release publication time. This is a known
+metadata naming defect, not a release-identity or cryptographic-integrity
+failure. The preview channel records GitHub's actual publication timestamp, and
+future release tooling must distinguish preparation from publication time.
+
 ## Passed foundation evidence
 
 - The exact public `--verify-only` path passed on all three clean hosts and

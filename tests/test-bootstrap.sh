@@ -8,14 +8,26 @@ README="$ROOT/README.md"
 sh -n "$BOOTSTRAP"
 
 status_output=$("$BOOTSTRAP" --status)
-printf '%s\n' "$status_output" | grep -F 'Release candidate: v0.1.0-rc13' >/dev/null
-printf '%s\n' "$status_output" | grep -F 'Publisher identity: vivolution-pilot-release' >/dev/null
+printf '%s\n' "$status_output" | grep -F 'no approved release' >/dev/null
+printf '%s\n' "$status_output" | grep -F 'Nothing was downloaded or installed.' >/dev/null
 
-grep -F -- "--proto '=https'" "$BOOTSTRAP" >/dev/null
-grep -F -- '--proto-redir' "$BOOTSTRAP" >/dev/null
-grep -F 'ssh-keygen -Y verify' "$BOOTSTRAP" >/dev/null
-if grep -E 'eval[[:space:]]|sh[[:space:]]+-c' "$BOOTSTRAP" >/dev/null; then
-    echo 'Bootstrap unexpectedly contains dynamic shell execution.' >&2
+set +e
+normal_output=$("$BOOTSTRAP" 2>&1)
+normal_rc=$?
+set -e
+[ "$normal_rc" -ne 0 ]
+printf '%s\n' "$normal_output" | grep -F 'intentionally fail-closed' >/dev/null
+printf '%s\n' "$normal_output" | grep -F 'nothing was downloaded' >/dev/null
+
+set +e
+invalid_output=$("$BOOTSTRAP" --unknown 2>&1)
+invalid_rc=$?
+set -e
+[ "$invalid_rc" -ne 0 ]
+printf '%s\n' "$invalid_output" | grep -F 'supported option: --status' >/dev/null
+
+if grep -E 'curl[[:space:]]|wget[[:space:]]|eval[[:space:]]|sh[[:space:]]+-c' "$BOOTSTRAP" >/dev/null; then
+    echo 'Inactive bootstrap unexpectedly contains a downloader or dynamic execution path.' >&2
     exit 1
 fi
 
@@ -23,6 +35,11 @@ fi
 # shellcheck disable=SC2016  # The README must contain the literal shell variable $tmp.
 expected_output_fragment='--output "$tmp"'
 grep -F -- "$expected_output_fragment" "$README" >/dev/null
+grep -F '/v0.1.0-rc13/install.sh' "$README" >/dev/null
+if grep -F 'RC5 command' "$README" >/dev/null || grep -F '/v0.1.0-rc5/install.sh' "$README" >/dev/null; then
+    echo 'README advertises the obsolete RC5 installer.' >&2
+    exit 1
+fi
 if grep -F '| sudo sh' "$README" >/dev/null; then
     echo 'README contains a pipeline that can hide curl failure or execute partial input.' >&2
     exit 1
@@ -42,13 +59,21 @@ assert stable == {
     'available': False,
     'reason': 'No approved stable release has been promoted.',
 }
+
 preview = json.loads((root / 'channels' / 'preview.json').read_text())
 assert preview['schema_version'] == 1
 assert preview['channel'] == 'preview'
 assert preview['available'] is True
+assert preview['release'] == '0.1.0-rc13'
 assert preview['tag'] == 'v0.1.0-rc13'
 assert preview['source_commit'] == '42a5c8be98b35211afdde3294f337b1c8258e2c9'
+assert preview['roles'] == ['controller', 'edge']
+assert preview['os'] == 'debian-13'
+assert preview['architecture'] == 'amd64'
 assert preview['artifact_sha256'] == 'fa574052befbdc6bb656636ca4493f8285551e47f1256b834c36bcde337fc283'
+assert preview['published_at'] == '2026-09-04T19:36:03Z'
+assert preview['installer_url'].endswith('/v0.1.0-rc13/install.sh')
+assert preview['manifest_url'].endswith('/v0.1.0-rc13/vivolution-voice-platform-0.1.0-rc13-amd64.manifest.json')
 
 schema = json.loads((root / 'schemas' / 'release-manifest.schema.json').read_text())
 assert schema['additionalProperties'] is False

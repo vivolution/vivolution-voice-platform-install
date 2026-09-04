@@ -33,15 +33,20 @@ Check the channel without installing:
 
 ## Release policy
 
-- `main/install.sh` points only to the latest explicitly promoted release.
+- `main/install.sh` remains fail-closed until a stable release is explicitly
+  promoted. Preview candidates are available only from immutable version-pinned
+  tags.
 - Version-pinned paths remain available for reproducibility.
-- Published tags and release assets are protected by GitHub release immutability and are never replaced.
-- Every immutable release receives a cryptographically verifiable GitHub release attestation.
+- Published tags and release assets are protected by GitHub release
+  immutability and are never replaced.
+- Every immutable release receives a cryptographically verifiable GitHub
+  release attestation.
 - The bootstrap verifies the exact artifact size and digest before execution.
 - RC12 and later bootstraps also require an OpenSSH detached publisher
   signature bound to the documented Vivolution release namespace and identity.
 - A failed validation results in a new release candidate, never a rewritten tag.
-- The current three-host standalone pilot uses a version-pinned RC; Controller HA remains a separate qualification target.
+- The current three-host standalone pilot uses a version-pinned RC; Controller
+  HA remains a separate qualification target.
 - Final `v0.1.0` is published only after the Controller plus two-Edge proof passes.
 
 ## Supported product target
