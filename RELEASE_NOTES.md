@@ -1,11 +1,11 @@
-# Vivolution Voice Platform v0.1.0-rc5 — unified internal-pilot candidate
+# Vivolution Voice Platform v0.1.0-rc6 — immutable unified internal-pilot candidate
 
 This immutable prerelease contains both supported deployment roles for fresh Debian GNU/Linux 13 AMD64 hosts:
 
 - a standalone Controller Plane;
 - an Edge Appliance enrolled to an existing Controller Plane.
 
-RC5 is built from source commit `921bdf20be756bc12c345e84eb2bca818f7bcab8`. Two independent builds were byte-for-byte identical, and the public manifest, SHA-256 checksums, archive layout, and SPDX 2.3 SBOM were verified.
+RC6 is built from source commit `f37febffd8d64392dddfb58c66b466a18848e0ea`. Two independent builds were byte-for-byte identical, and the public manifest, SHA-256 checksums, archive layout, and SPDX 2.3 SBOM were verified.
 
 Automated qualification tied to this exact source commit passed:
 
@@ -21,4 +21,11 @@ The existing Azure internal pilot independently operates one Controller, two Edg
 
 This is an internal-pilot release candidate, not a public-production or certified SBC release. Before external or paid production use, complete fresh-host Edge installation from this exact candidate, human-confirmed two-way audio and the full call matrix, security review, capacity/soak and recovery drills, alert delivery, and applicable Microsoft, carrier, emergency-calling, and regulatory acceptance.
 
-The version-pinned bootstrap verifies platform identity, exact byte size, SHA-256, archive paths and types, embedded release identity, both role payloads, and the installer entry point before it executes anything.
+The version-pinned bootstrap verifies platform identity, exact byte size, SHA-256, archive paths and types, embedded release identity, both role payloads, and the installer entry point before it executes anything. GitHub release immutability locks the published tag and assets and creates a cryptographically verifiable release attestation.
+
+Before installation, an operator with GitHub CLI 2.79 or later can independently verify the release and downloaded artifact:
+
+```sh
+gh release verify v0.1.0-rc6 --repo vivolution/vivolution-voice-platform-install
+gh release verify-asset v0.1.0-rc6 ./vivolution-voice-platform-0.1.0-rc6-amd64.tar.gz --repo vivolution/vivolution-voice-platform-install
+```
