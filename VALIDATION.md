@@ -17,5 +17,9 @@ commit, byte-for-byte reproducible unified artifact, detached publisher
 signature, byte counts, digests, manifest, and SBOM. All nine required source
 repository checks passed for that exact commit before publication approval.
 RC12 remains immutable but is not qualified because its clean-host run required
-operator activation fixes. RC13 requires a fresh, unmodified public one-line
-Controller-plus-two-Edge rerun before internal-pilot qualification.
+operator activation fixes. RC13 subsequently passed a fresh, unmodified public
+one-line Controller-plus-two-Edge install, automatic Edge-cluster activation,
+independent VM restarts, and bounded Controller-outage last-known-good proof
+without an installed-file patch. The dated
+[RC13 qualification summary](docs/rc13-qualification.md) separates that
+foundation evidence from the production gates that remain open.

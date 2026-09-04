@@ -19,7 +19,7 @@ transfer cannot be mistaken for a successful installation.
 **No stable release is promoted yet.** The permanent command exits safely
 without downloading a product artifact or changing the host. An immutable
 unified internal-pilot candidate is available through the version-pinned RC13
-command after its GitHub prerelease is published:
+command:
 
 ```sh
 (tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc13/install.sh && sudo sh "$tmp")
@@ -53,6 +53,10 @@ Appliances. Controller and Edge roles must not share a host.
 RC13 detached-signature verification requires the Debian `openssh-client`
 package and an `ssh-keygen` version supporting `-Y verify` before the product
 archive can be authenticated.
+
+The dated [RC13 qualification summary](docs/rc13-qualification.md) records the
+bounded clean-host, restart, and Controller-outage proof and keeps the remaining
+production gates explicit.
 
 ## Security
 
