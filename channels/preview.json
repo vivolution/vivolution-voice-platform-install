@@ -1,6 +1,15 @@
 {
   "schema_version": 1,
   "channel": "preview",
-  "available": false,
-  "reason": "No approved preview release has been promoted."
+  "available": true,
+  "release": "0.1.0-rc5",
+  "tag": "v0.1.0-rc5",
+  "source_commit": "921bdf20be756bc12c345e84eb2bca818f7bcab8",
+  "roles": ["controller", "edge"],
+  "os": "debian-13",
+  "architecture": "amd64",
+  "installer_url": "https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc5/install.sh",
+  "manifest_url": "https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc5/vivolution-voice-platform-0.1.0-rc5-amd64.manifest.json",
+  "artifact_sha256": "eff0d8878f0be66099b0912a01f233c023b036ba5e3a196f483380b12ac55e46",
+  "published_at": "2026-09-04T11:27:12Z"
 }
