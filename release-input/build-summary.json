@@ -1,0 +1,14 @@
+{
+  "artifact": "vivolution-voice-platform-0.1.0-rc5-amd64.tar.gz",
+  "artifact_bytes": 237609,
+  "artifact_sha256": "eff0d8878f0be66099b0912a01f233c023b036ba5e3a196f483380b12ac55e46",
+  "manifest": "vivolution-voice-platform-0.1.0-rc5-amd64.manifest.json",
+  "release": "0.1.0-rc5",
+  "roles": [
+    "controller",
+    "edge"
+  ],
+  "sbom": "vivolution-voice-platform-0.1.0-rc5-amd64.spdx.json",
+  "sbom_sha256": "3a182b8ce83994b399fb16ef683168f94b04141e2a155152c89d95f4202df4a2",
+  "source_commit": "921bdf20be756bc12c345e84eb2bca818f7bcab8"
+}

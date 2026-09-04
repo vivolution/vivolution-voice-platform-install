@@ -16,10 +16,14 @@ notes, and approved versioned release assets.
 Downloading the complete bootstrap before execution ensures a failed or partial
 transfer cannot be mistaken for a successful installation.
 
-**No release is promoted yet.** The command currently exits safely without
-downloading a product artifact or changing the host. It becomes active only
-after an exact release candidate has passed automated validation and its
-artifact, digest, manifest, and SBOM have been published.
+**No stable release is promoted yet.** The permanent command exits safely
+without downloading a product artifact or changing the host. An immutable
+unified internal-pilot candidate is available through the version-pinned RC5
+command after its GitHub prerelease is published:
+
+```sh
+(tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc5/install.sh && sudo sh "$tmp")
+```
 
 Check the channel without installing:
 
