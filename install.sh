@@ -2,15 +2,15 @@
 set -eu
 
 PRODUCT='Vivolution Voice Platform'
-RELEASE_VERSION='0.1.0-rc12'
-SOURCE_COMMIT='4a89d6b28b16fa7acd4541d4ac8d6071ab7a2c04'
-ARCHIVE_NAME='vivolution-voice-platform-0.1.0-rc12-amd64.tar.gz'
-ARCHIVE_ROOT='vivolution-voice-platform-0.1.0-rc12'
-ARCHIVE_SHA256='546a8a8e059d531f31ddd6eebbfee0a108af4012da4672c4928f71e4d2c25d5a'
-ARCHIVE_BYTES='30724599'
+RELEASE_VERSION='0.1.0-rc13'
+SOURCE_COMMIT='42a5c8be98b35211afdde3294f337b1c8258e2c9'
+ARCHIVE_NAME='vivolution-voice-platform-0.1.0-rc13-amd64.tar.gz'
+ARCHIVE_ROOT='vivolution-voice-platform-0.1.0-rc13'
+ARCHIVE_SHA256='fa574052befbdc6bb656636ca4493f8285551e47f1256b834c36bcde337fc283'
+ARCHIVE_BYTES='30735281'
 ARCHIVE_URL="https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v${RELEASE_VERSION}/${ARCHIVE_NAME}"
 SIGNATURE_NAME="${ARCHIVE_NAME}.sig"
-SIGNATURE_SHA256='bdbe44b605b009c957e4bcc2ed5b2725d3d2ed32b7e78f146b31443dbc89d127'
+SIGNATURE_SHA256='96206484a3ae997e8f998ed2bd3f7d0aa0f5d38ac20b97e22c7fcd4f37f1bd79'
 SIGNATURE_BYTES='334'
 SIGNATURE_URL="${ARCHIVE_URL}.sig"
 RELEASE_SIGNING_NAMESPACE='vivolution-voice-platform-release'
@@ -128,7 +128,7 @@ case "${1:-}" in
 esac
 
 metadata_is_final ||
-    fail 'RC12 release metadata is incomplete; nothing was downloaded or installed'
+    fail 'RC13 release metadata is incomplete; nothing was downloaded or installed'
 
 [ "$(id -u)" -eq 0 ] || fail 'run through sudo as documented'
 

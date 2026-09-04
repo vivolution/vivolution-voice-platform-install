@@ -18,11 +18,11 @@ transfer cannot be mistaken for a successful installation.
 
 **No stable release is promoted yet.** The permanent command exits safely
 without downloading a product artifact or changing the host. An immutable
-unified internal-pilot candidate is available through the version-pinned RC12
+unified internal-pilot candidate is available through the version-pinned RC13
 command after its GitHub prerelease is published:
 
 ```sh
-(tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc12/install.sh && sudo sh "$tmp")
+(tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc13/install.sh && sudo sh "$tmp")
 ```
 
 Check the channel without installing:
@@ -50,7 +50,7 @@ The current product line targets native services on **Debian GNU/Linux 13
 AMD64/x86-64**, with one standalone Controller Plane and two dedicated Edge
 Appliances. Controller and Edge roles must not share a host.
 
-RC12 detached-signature verification requires the Debian `openssh-client`
+RC13 detached-signature verification requires the Debian `openssh-client`
 package and an `ssh-keygen` version supporting `-Y verify` before the product
 archive can be authenticated.
 

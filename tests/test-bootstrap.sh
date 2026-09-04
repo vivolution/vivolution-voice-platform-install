@@ -8,7 +8,7 @@ README="$ROOT/README.md"
 sh -n "$BOOTSTRAP"
 
 status_output=$("$BOOTSTRAP" --status)
-printf '%s\n' "$status_output" | grep -F 'Release candidate: v0.1.0-rc12' >/dev/null
+printf '%s\n' "$status_output" | grep -F 'Release candidate: v0.1.0-rc13' >/dev/null
 printf '%s\n' "$status_output" | grep -F 'Publisher identity: vivolution-pilot-release' >/dev/null
 
 grep -F -- "--proto '=https'" "$BOOTSTRAP" >/dev/null
@@ -46,9 +46,9 @@ preview = json.loads((root / 'channels' / 'preview.json').read_text())
 assert preview['schema_version'] == 1
 assert preview['channel'] == 'preview'
 assert preview['available'] is True
-assert preview['tag'] == 'v0.1.0-rc12'
-assert preview['source_commit'] == '4a89d6b28b16fa7acd4541d4ac8d6071ab7a2c04'
-assert preview['artifact_sha256'] == '546a8a8e059d531f31ddd6eebbfee0a108af4012da4672c4928f71e4d2c25d5a'
+assert preview['tag'] == 'v0.1.0-rc13'
+assert preview['source_commit'] == '42a5c8be98b35211afdde3294f337b1c8258e2c9'
+assert preview['artifact_sha256'] == 'fa574052befbdc6bb656636ca4493f8285551e47f1256b834c36bcde337fc283'
 
 schema = json.loads((root / 'schemas' / 'release-manifest.schema.json').read_text())
 assert schema['additionalProperties'] is False

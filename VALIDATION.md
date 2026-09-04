@@ -12,7 +12,10 @@ The public bootstrap foundation has passed repeated automated validation.
 6. ShellCheck found a test quoting warning; fixed and revalidated.
 7. Final branch and post-merge `main` workflows passed.
 
-No stable product release is promoted yet. RC12 now records the exact source
+No stable product release is promoted yet. RC13 records the exact source
 commit, byte-for-byte reproducible unified artifact, detached publisher
-signature, byte counts, digests, manifest, and SBOM. All required source
+signature, byte counts, digests, manifest, and SBOM. All nine required source
 repository checks passed for that exact commit before publication approval.
+RC12 remains immutable but is not qualified because its clean-host run required
+operator activation fixes. RC13 requires a fresh, unmodified public one-line
+Controller-plus-two-Edge rerun before internal-pilot qualification.
