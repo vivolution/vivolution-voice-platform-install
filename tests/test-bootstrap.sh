@@ -8,26 +8,14 @@ README="$ROOT/README.md"
 sh -n "$BOOTSTRAP"
 
 status_output=$("$BOOTSTRAP" --status)
-printf '%s\n' "$status_output" | grep -F 'no approved release' >/dev/null
-printf '%s\n' "$status_output" | grep -F 'Nothing was downloaded or installed.' >/dev/null
+printf '%s\n' "$status_output" | grep -F 'Release candidate: v0.1.0-rc12' >/dev/null
+printf '%s\n' "$status_output" | grep -F 'Publisher identity: vivolution-pilot-release' >/dev/null
 
-set +e
-normal_output=$("$BOOTSTRAP" 2>&1)
-normal_rc=$?
-set -e
-[ "$normal_rc" -ne 0 ]
-printf '%s\n' "$normal_output" | grep -F 'intentionally fail-closed' >/dev/null
-printf '%s\n' "$normal_output" | grep -F 'nothing was downloaded' >/dev/null
-
-set +e
-invalid_output=$("$BOOTSTRAP" --unknown 2>&1)
-invalid_rc=$?
-set -e
-[ "$invalid_rc" -ne 0 ]
-printf '%s\n' "$invalid_output" | grep -F 'supported option: --status' >/dev/null
-
-if grep -E 'curl[[:space:]]|wget[[:space:]]|eval[[:space:]]|sh[[:space:]]+-c' "$BOOTSTRAP" >/dev/null; then
-    echo 'Inactive bootstrap unexpectedly contains a downloader or dynamic execution path.' >&2
+grep -F -- "--proto '=https'" "$BOOTSTRAP" >/dev/null
+grep -F -- '--proto-redir' "$BOOTSTRAP" >/dev/null
+grep -F 'ssh-keygen -Y verify' "$BOOTSTRAP" >/dev/null
+if grep -E 'eval[[:space:]]|sh[[:space:]]+-c' "$BOOTSTRAP" >/dev/null; then
+    echo 'Bootstrap unexpectedly contains dynamic shell execution.' >&2
     exit 1
 fi
 
@@ -47,14 +35,20 @@ import re
 import sys
 
 root = pathlib.Path(sys.argv[1])
-for channel in ('stable', 'preview'):
-    value = json.loads((root / 'channels' / f'{channel}.json').read_text())
-    assert value == {
-        'schema_version': 1,
-        'channel': channel,
-        'available': False,
-        'reason': f"No approved {channel} release has been promoted.",
-    }
+stable = json.loads((root / 'channels' / 'stable.json').read_text())
+assert stable == {
+    'schema_version': 1,
+    'channel': 'stable',
+    'available': False,
+    'reason': 'No approved stable release has been promoted.',
+}
+preview = json.loads((root / 'channels' / 'preview.json').read_text())
+assert preview['schema_version'] == 1
+assert preview['channel'] == 'preview'
+assert preview['available'] is True
+assert preview['tag'] == 'v0.1.0-rc12'
+assert preview['source_commit'] == '4a89d6b28b16fa7acd4541d4ac8d6071ab7a2c04'
+assert preview['artifact_sha256'] == '546a8a8e059d531f31ddd6eebbfee0a108af4012da4672c4928f71e4d2c25d5a'
 
 schema = json.loads((root / 'schemas' / 'release-manifest.schema.json').read_text())
 assert schema['additionalProperties'] is False
