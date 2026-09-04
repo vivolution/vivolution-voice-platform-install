@@ -35,6 +35,11 @@ fi
 # shellcheck disable=SC2016  # The README must contain the literal shell variable $tmp.
 expected_output_fragment='--output "$tmp"'
 grep -F -- "$expected_output_fragment" "$README" >/dev/null
+grep -F '/v0.1.0-rc13/install.sh' "$README" >/dev/null
+if grep -F 'RC5 command' "$README" >/dev/null || grep -F '/v0.1.0-rc5/install.sh' "$README" >/dev/null; then
+    echo 'README advertises the obsolete RC5 installer.' >&2
+    exit 1
+fi
 if grep -F '| sudo sh' "$README" >/dev/null; then
     echo 'README contains a pipeline that can hide curl failure or execute partial input.' >&2
     exit 1
@@ -59,15 +64,16 @@ preview = json.loads((root / 'channels' / 'preview.json').read_text())
 assert preview['schema_version'] == 1
 assert preview['channel'] == 'preview'
 assert preview['available'] is True
-assert preview['release'] == '0.1.0-rc5'
-assert preview['tag'] == 'v0.1.0-rc5'
-assert preview['source_commit'] == '921bdf20be756bc12c345e84eb2bca818f7bcab8'
+assert preview['release'] == '0.1.0-rc13'
+assert preview['tag'] == 'v0.1.0-rc13'
+assert preview['source_commit'] == '42a5c8be98b35211afdde3294f337b1c8258e2c9'
 assert preview['roles'] == ['controller', 'edge']
 assert preview['os'] == 'debian-13'
 assert preview['architecture'] == 'amd64'
-assert preview['artifact_sha256'] == 'eff0d8878f0be66099b0912a01f233c023b036ba5e3a196f483380b12ac55e46'
-assert preview['installer_url'].endswith('/v0.1.0-rc5/install.sh')
-assert preview['manifest_url'].endswith('/v0.1.0-rc5/vivolution-voice-platform-0.1.0-rc5-amd64.manifest.json')
+assert preview['artifact_sha256'] == 'fa574052befbdc6bb656636ca4493f8285551e47f1256b834c36bcde337fc283'
+assert preview['published_at'] == '2026-09-04T19:36:03Z'
+assert preview['installer_url'].endswith('/v0.1.0-rc13/install.sh')
+assert preview['manifest_url'].endswith('/v0.1.0-rc13/vivolution-voice-platform-0.1.0-rc13-amd64.manifest.json')
 
 schema = json.loads((root / 'schemas' / 'release-manifest.schema.json').read_text())
 assert schema['additionalProperties'] is False
