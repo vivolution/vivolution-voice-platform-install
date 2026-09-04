@@ -47,14 +47,27 @@ import re
 import sys
 
 root = pathlib.Path(sys.argv[1])
-for channel in ('stable', 'preview'):
-    value = json.loads((root / 'channels' / f'{channel}.json').read_text())
-    assert value == {
-        'schema_version': 1,
-        'channel': channel,
-        'available': False,
-        'reason': f"No approved {channel} release has been promoted.",
-    }
+stable = json.loads((root / 'channels' / 'stable.json').read_text())
+assert stable == {
+    'schema_version': 1,
+    'channel': 'stable',
+    'available': False,
+    'reason': 'No approved stable release has been promoted.',
+}
+
+preview = json.loads((root / 'channels' / 'preview.json').read_text())
+assert preview['schema_version'] == 1
+assert preview['channel'] == 'preview'
+assert preview['available'] is True
+assert preview['release'] == '0.1.0-rc5'
+assert preview['tag'] == 'v0.1.0-rc5'
+assert preview['source_commit'] == '921bdf20be756bc12c345e84eb2bca818f7bcab8'
+assert preview['roles'] == ['controller', 'edge']
+assert preview['os'] == 'debian-13'
+assert preview['architecture'] == 'amd64'
+assert preview['artifact_sha256'] == 'eff0d8878f0be66099b0912a01f233c023b036ba5e3a196f483380b12ac55e46'
+assert preview['installer_url'].endswith('/v0.1.0-rc5/install.sh')
+assert preview['manifest_url'].endswith('/v0.1.0-rc5/vivolution-voice-platform-0.1.0-rc5-amd64.manifest.json')
 
 schema = json.loads((root / 'schemas' / 'release-manifest.schema.json').read_text())
 assert schema['additionalProperties'] is False
