@@ -22,7 +22,7 @@ unified internal-pilot candidate is available through the version-pinned RC10
 command after its GitHub prerelease is published:
 
 ```sh
-(tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc10/install.sh && sudo sh "$tmp")
+(tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc11/install.sh && sudo sh "$tmp")
 ```
 
 Check the channel without installing:
