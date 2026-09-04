@@ -1,0 +1,26 @@
+{
+  "artifact": {
+    "architecture": "amd64",
+    "archive_root": "vivolution-voice-platform-0.1.0-rc7",
+    "bytes": 239523,
+    "entrypoint": "installer/install.sh",
+    "name": "vivolution-voice-platform-0.1.0-rc7-amd64.tar.gz",
+    "os": "debian-13",
+    "sha256": "eb152d54cf8c049f7aa177618bd8496104a316e03b63d9bc3035157ffaa62137",
+    "url": "https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc7/vivolution-voice-platform-0.1.0-rc7-amd64.tar.gz"
+  },
+  "product": "Vivolution Voice Platform",
+  "published_at": "2026-09-04T12:27:11Z",
+  "release": "0.1.0-rc7",
+  "roles": [
+    "controller",
+    "edge"
+  ],
+  "sbom": {
+    "name": "vivolution-voice-platform-0.1.0-rc7-amd64.spdx.json",
+    "sha256": "410965339dfe266786db4d66fbb0907f5da311ce5eb27709dd1b054291b9d7a7",
+    "url": "https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc7/vivolution-voice-platform-0.1.0-rc7-amd64.spdx.json"
+  },
+  "schema_version": 1,
+  "source_commit": "b6216a7c45a58ac26dda53890ee0adf790975fae"
+}

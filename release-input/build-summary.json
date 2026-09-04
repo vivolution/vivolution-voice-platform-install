@@ -1,14 +1,14 @@
 {
-  "artifact": "vivolution-voice-platform-0.1.0-rc6-amd64.tar.gz",
-  "artifact_bytes": 237599,
-  "artifact_sha256": "94c450488a785c47225d3f506fc316b4a1449cd44f388279ff7af03d96f723b7",
-  "manifest": "vivolution-voice-platform-0.1.0-rc6-amd64.manifest.json",
-  "release": "0.1.0-rc6",
+  "artifact": "vivolution-voice-platform-0.1.0-rc7-amd64.tar.gz",
+  "artifact_bytes": 239523,
+  "artifact_sha256": "eb152d54cf8c049f7aa177618bd8496104a316e03b63d9bc3035157ffaa62137",
+  "manifest": "vivolution-voice-platform-0.1.0-rc7-amd64.manifest.json",
+  "release": "0.1.0-rc7",
   "roles": [
     "controller",
     "edge"
   ],
-  "sbom": "vivolution-voice-platform-0.1.0-rc6-amd64.spdx.json",
-  "sbom_sha256": "e66543010711aefa15a729e21a28c4bb18c4b8409e4607819d74d4a892565034",
-  "source_commit": "f37febffd8d64392dddfb58c66b466a18848e0ea"
+  "sbom": "vivolution-voice-platform-0.1.0-rc7-amd64.spdx.json",
+  "sbom_sha256": "410965339dfe266786db4d66fbb0907f5da311ce5eb27709dd1b054291b9d7a7",
+  "source_commit": "b6216a7c45a58ac26dda53890ee0adf790975fae"
 }
