@@ -1,13 +1,13 @@
-# Vivolution Voice Platform v0.1.0-rc7 — immutable unified internal-pilot candidate
+# Vivolution Voice Platform v0.1.0-rc8 — immutable unified internal-pilot candidate
 
 This immutable prerelease contains both supported deployment roles for fresh Debian GNU/Linux 13 AMD64 hosts:
 
 - a standalone Controller Plane;
 - an Edge Appliance enrolled to an existing Controller Plane.
 
-RC7 is built from source commit `b6216a7c45a58ac26dda53890ee0adf790975fae`. Two independent builds were byte-for-byte identical, and the public manifest, SHA-256 checksums, archive layout, and SPDX 2.3 SBOM were verified.
+RC8 is built from source commit `756e0ae6c336a5c4a3a46d416d461f579f7c9750`. Two independent builds were byte-for-byte identical, and the public manifest, SHA-256 checksums, archive layout, and SPDX 2.3 SBOM were verified.
 
-RC7 replaces RC6 after clean-host qualification exposed a fail-fast Edge installer defect before service activation. The Edge runtime now derives its private signaling address from the persisted service-interface answer used by the reviewed installation plan; regression coverage prevents the undeclared answer dependency from returning. RC6 remains immutable for audit evidence and must not be deployed.
+RC8 replaces RC7 after clean-host qualification exposed a fail-closed permission defect before enrollment. The bootstrap uses a restrictive umask, so RC8 explicitly normalizes only the verified, non-secret Edge release tree and fixed parent directories before the unprivileged Edge agent uses them. It also includes RC7's correction that derives the Edge private signaling address from the persisted service-interface answer. Regression coverage now exercises both contracts. RC6 and RC7 remain immutable for audit evidence and must not be deployed.
 
 Automated qualification tied to this exact source commit passed:
 
@@ -28,6 +28,6 @@ The version-pinned bootstrap verifies platform identity, exact byte size, SHA-25
 Before installation, an operator with GitHub CLI 2.79 or later can independently verify the release and downloaded artifact:
 
 ```sh
-gh release verify v0.1.0-rc7 --repo vivolution/vivolution-voice-platform-install
-gh release verify-asset v0.1.0-rc7 ./vivolution-voice-platform-0.1.0-rc7-amd64.tar.gz --repo vivolution/vivolution-voice-platform-install
+gh release verify v0.1.0-rc8 --repo vivolution/vivolution-voice-platform-install
+gh release verify-asset v0.1.0-rc8 ./vivolution-voice-platform-0.1.0-rc8-amd64.tar.gz --repo vivolution/vivolution-voice-platform-install
 ```

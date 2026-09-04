@@ -2,12 +2,12 @@
 set -eu
 
 PRODUCT='Vivolution Voice Platform'
-RELEASE_VERSION='0.1.0-rc7'
-SOURCE_COMMIT='b6216a7c45a58ac26dda53890ee0adf790975fae'
-ARCHIVE_NAME='vivolution-voice-platform-0.1.0-rc7-amd64.tar.gz'
-ARCHIVE_ROOT='vivolution-voice-platform-0.1.0-rc7'
-ARCHIVE_SHA256='eb152d54cf8c049f7aa177618bd8496104a316e03b63d9bc3035157ffaa62137'
-ARCHIVE_BYTES='239523'
+RELEASE_VERSION='0.1.0-rc8'
+SOURCE_COMMIT='756e0ae6c336a5c4a3a46d416d461f579f7c9750'
+ARCHIVE_NAME='vivolution-voice-platform-0.1.0-rc8-amd64.tar.gz'
+ARCHIVE_ROOT='vivolution-voice-platform-0.1.0-rc8'
+ARCHIVE_SHA256='85c1401e2b719e7f85b0a40b4a015ef1129bd6130a606c16279207dd274ddc81'
+ARCHIVE_BYTES='239711'
 ARCHIVE_URL="https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v${RELEASE_VERSION}/${ARCHIVE_NAME}"
 MAX_ARCHIVE_BYTES='268435456'
 MAX_ARCHIVE_ENTRIES='4096'

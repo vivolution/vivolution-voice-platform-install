@@ -2,14 +2,14 @@
   "schema_version": 1,
   "channel": "preview",
   "available": true,
-  "release": "0.1.0-rc7",
-  "tag": "v0.1.0-rc7",
-  "source_commit": "b6216a7c45a58ac26dda53890ee0adf790975fae",
+  "release": "0.1.0-rc8",
+  "tag": "v0.1.0-rc8",
+  "source_commit": "756e0ae6c336a5c4a3a46d416d461f579f7c9750",
   "roles": ["controller", "edge"],
   "os": "debian-13",
   "architecture": "amd64",
-  "installer_url": "https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc7/install.sh",
-  "manifest_url": "https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc7/vivolution-voice-platform-0.1.0-rc7-amd64.manifest.json",
-  "artifact_sha256": "eb152d54cf8c049f7aa177618bd8496104a316e03b63d9bc3035157ffaa62137",
-  "published_at": "2026-09-04T12:28:00Z"
+  "installer_url": "https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc8/install.sh",
+  "manifest_url": "https://github.com/vivolution/vivolution-voice-platform-install/releases/download/v0.1.0-rc8/vivolution-voice-platform-0.1.0-rc8-amd64.manifest.json",
+  "artifact_sha256": "85c1401e2b719e7f85b0a40b4a015ef1129bd6130a606c16279207dd274ddc81",
+  "published_at": "2026-09-04T12:43:18Z"
 }
