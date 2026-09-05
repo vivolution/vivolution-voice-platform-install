@@ -7,23 +7,33 @@ The complete product source remains private. This repository contains only the
 small bootstrap, public release metadata, checksums/signatures, SBOMs, release
 notes, and approved versioned release assets.
 
-## Permanent one-line command
+## Deploy your first Controller and two Edges
 
 ```sh
-(tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/main/install.sh && sudo sh "$tmp")
+(tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc13/install.sh && printf '%s  %s\n' 'd0550a63256b0d099ce5e9c4d69bde0a78e6ec38cfe3289092c15f0d7dff8e8e' "$tmp" | sha256sum --check --status && sudo sh "$tmp")
 ```
 
-Downloading the complete bootstrap before execution ensures a failed or partial
-transfer cannot be mistaken for a successful installation.
+Run this command inside an interactive SSH session on **each of three fresh
+Debian 13 AMD64 VMs**, starting with the Controller:
 
-**No stable release is promoted yet.** The permanent command exits safely
-without downloading a product artifact or changing the host. An immutable
-unified internal-pilot candidate is available through the version-pinned RC13
-command:
+1. `Vivo-Voice-CP1`: select **1 — Create a new standalone Controller Plane**.
+2. Prepare the two Edge identities and their separate enrollment grants on the Controller.
+3. `Vivo-Voice-Edge1` and `Vivo-Voice-Edge2`: select **3 — Deploy an Edge Appliance (SBC)** on each, then approve each fingerprint on the Controller.
 
-```sh
-(tmp=$(mktemp) && trap 'rm -f "$tmp"' EXIT HUP INT TERM && curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' --tlsv1.2 --output "$tmp" https://raw.githubusercontent.com/vivolution/vivolution-voice-platform-install/v0.1.0-rc13/install.sh && sudo sh "$tmp")
-```
+Use 2 vCPU, 8 GiB RAM and 64 GB disk per VM for the qualified pilot shape.
+Prepare public DNS A records with TTL **60** and certificate-validation network access first. Minimal
+images also need `ca-certificates curl python3 openssh-client sudo`.
+Follow the [complete three-VM deployment guide](docs/first-controller-two-edges.md)
+for DNS, firewall, credentials, grant transfer and approval.
+
+This command pins **RC13**, the signed release with three-host installation
+evidence. It verifies the bootstrap checksum before execution, then the bootstrap
+verifies the exact product archive and publisher signature. RC14 development
+changes are not included. **RC13 is for a controlled internal pilot; production
+and Controller HA qualification remain open.**
+
+No stable release is promoted yet. `main/install.sh` remains intentionally
+unavailable for installation.
 
 Check the channel without installing:
 
@@ -47,7 +57,8 @@ Check the channel without installing:
 - A failed validation results in a new release candidate, never a rewritten tag.
 - The current three-host standalone pilot uses a version-pinned RC; Controller
   HA remains a separate qualification target.
-- Final `v0.1.0` is published only after the Controller plus two-Edge proof passes.
+- Final `v0.1.0` requires the remaining voice, operational, lifecycle, security,
+  capacity and applicable external-acceptance gates as well as installation proof.
 
 ## Supported product target
 
